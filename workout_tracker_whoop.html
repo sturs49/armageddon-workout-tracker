@@ -678,6 +678,89 @@
             overflow-y: auto;
         }
 
+        /* Scroll Picker */
+        .scroll-picker {
+            position: relative;
+            height: 120px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .scroll-picker-inner {
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding: 48px 0;
+        }
+
+        .scroll-picker-inner::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scroll-picker-item {
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #555;
+            scroll-snap-align: center;
+            transition: color 0.15s, transform 0.15s;
+        }
+
+        .scroll-picker-item.selected {
+            color: var(--accent);
+            transform: scale(1.15);
+        }
+
+        .scroll-picker-highlight {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 40px;
+            transform: translateY(-50%);
+            border-top: 1px solid var(--accent);
+            border-bottom: 1px solid var(--accent);
+            background: rgba(255, 255, 0, 0.05);
+            pointer-events: none;
+        }
+
+        /* Done Button States */
+        .btn-done {
+            background: var(--card-bg);
+            color: var(--accent);
+            border: 2px solid var(--accent);
+            transition: all 0.3s ease;
+        }
+
+        .btn-done.completed {
+            background: var(--success);
+            color: var(--text-dark);
+            border-color: var(--success);
+        }
+
+        .btn-done:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .exercise-progress {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .exercise-progress .filled {
+            color: var(--success);
+        }
+
         /* Weight Input */
         .weight-input-section {
             background: rgba(255, 255, 0, 0.05);
@@ -1074,7 +1157,9 @@
                     </div>
                     <button class="btn" onclick="saveWeight()" style="width: 100%;">Save Weight</button>
                 </div>
-                <button class="btn-secondary" onclick="closeModal()" style="width: 100%;">Done</button>
+                <div class="exercise-progress" id="exerciseProgress"></div>
+                <button class="btn btn-done" id="doneBtn" onclick="markComplete()" style="width: 100%;">Mark Complete</button>
+                <button class="btn-secondary" onclick="closeModal()" style="width: 100%; margin-top: 8px;">Close Without Completing</button>
             </div>
         </div>
     </div>
@@ -1716,14 +1801,25 @@
             const exercisesHtml = adjustedExercises.map((ex, idx) => `
                 <div class="exercise-item" style="border-left: 3px solid ${day.type === 'arm' ? 'var(--accent)' : 'var(--success)'};">
                     <div class="exercise-name">${ex.name}</div>
+                    <div style="font-size: 11px; color: #666; margin-bottom: 8px;">${ex.sets} sets x ${ex.reps} reps</div>
                     <div class="exercise-inputs">
                         <div class="input-group">
                             <label class="input-label">Weight (lbs)</label>
-                            <input type="number" placeholder="Weight" step="2.5" class="exercise-weight" data-index="${idx}">
+                            <div class="scroll-picker" id="weight-picker-${idx}">
+                                <div class="scroll-picker-highlight"></div>
+                                <div class="scroll-picker-inner" data-index="${idx}" data-type="weight" onscroll="onPickerScroll(this)">
+                                    ${generateWeightOptions()}
+                                </div>
+                            </div>
                         </div>
                         <div class="input-group">
-                            <label class="input-label">Your Reps</label>
-                            <input type="text" placeholder="${ex.reps}" class="exercise-reps" data-index="${idx}">
+                            <label class="input-label">Reps</label>
+                            <div class="scroll-picker" id="reps-picker-${idx}">
+                                <div class="scroll-picker-highlight"></div>
+                                <div class="scroll-picker-inner" data-index="${idx}" data-type="reps" onscroll="onPickerScroll(this)">
+                                    ${generateRepOptions()}
+                                </div>
+                            </div>
                         </div>
                         <div class="input-group" style="grid-column: 1/-1;">
                             <label class="input-label">Notes</label>
@@ -1735,28 +1831,148 @@
 
             document.getElementById('modalExercises').innerHTML = exercisesHtml;
             document.getElementById('workoutModal').classList.add('active');
+            updateExerciseProgress();
+
+            // Load saved data if exists
+            const workoutKey = `${dayKey}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+            const existingLog = workoutLogs[workoutKey];
+            if (existingLog?.exercises) {
+                existingLog.exercises.forEach((ex, idx) => {
+                    if (ex.weight) scrollPickerTo(idx, 'weight', parseFloat(ex.weight));
+                    if (ex.reps) scrollPickerTo(idx, 'reps', parseInt(ex.reps));
+                    const notesEl = document.querySelector(`.exercise-notes[data-index="${idx}"]`);
+                    if (notesEl && ex.notes) notesEl.value = ex.notes;
+                });
+            }
+
+            // Update done button state
+            updateDoneButton(existingLog?.completed);
+        }
+
+        function generateWeightOptions() {
+            let html = '';
+            for (let w = 0; w <= 300; w += 2.5) {
+                html += `<div class="scroll-picker-item" data-value="${w}">${w}</div>`;
+            }
+            return html;
+        }
+
+        function generateRepOptions() {
+            let html = '';
+            for (let r = 0; r <= 50; r++) {
+                html += `<div class="scroll-picker-item" data-value="${r}">${r}</div>`;
+            }
+            return html;
+        }
+
+        function onPickerScroll(el) {
+            const items = el.querySelectorAll('.scroll-picker-item');
+            const containerRect = el.getBoundingClientRect();
+            const centerY = containerRect.top + containerRect.height / 2;
+
+            let closest = null;
+            let closestDist = Infinity;
+            items.forEach(item => {
+                item.classList.remove('selected');
+                const rect = item.getBoundingClientRect();
+                const dist = Math.abs(rect.top + rect.height / 2 - centerY);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closest = item;
+                }
+            });
+            if (closest) {
+                closest.classList.add('selected');
+            }
+            updateExerciseProgress();
+        }
+
+        function scrollPickerTo(idx, type, value) {
+            const picker = document.querySelector(`.scroll-picker-inner[data-index="${idx}"][data-type="${type}"]`);
+            if (!picker) return;
+            const items = picker.querySelectorAll('.scroll-picker-item');
+            for (const item of items) {
+                if (parseFloat(item.dataset.value) === value) {
+                    setTimeout(() => {
+                        item.scrollIntoView({ block: 'center', behavior: 'instant' });
+                        item.classList.add('selected');
+                    }, 50);
+                    break;
+                }
+            }
+        }
+
+        function getPickerValue(idx, type) {
+            const picker = document.querySelector(`.scroll-picker-inner[data-index="${idx}"][data-type="${type}"]`);
+            if (!picker) return '';
+            const selected = picker.querySelector('.scroll-picker-item.selected');
+            return selected ? selected.dataset.value : '';
+        }
+
+        function getFilledCount() {
+            const weightPickers = document.querySelectorAll('.scroll-picker-inner[data-type="weight"]');
+            let filled = 0;
+            weightPickers.forEach(picker => {
+                const selected = picker.querySelector('.scroll-picker-item.selected');
+                if (selected && parseFloat(selected.dataset.value) > 0) filled++;
+            });
+            return { filled, total: weightPickers.length };
+        }
+
+        function updateExerciseProgress() {
+            const { filled, total } = getFilledCount();
+            const el = document.getElementById('exerciseProgress');
+            if (el) {
+                el.innerHTML = `<span class="${filled === total ? 'filled' : ''}">${filled}/${total} exercises logged</span>`;
+            }
+            // Enable/disable done button
+            const doneBtn = document.getElementById('doneBtn');
+            if (doneBtn && !doneBtn.classList.contains('completed')) {
+                doneBtn.disabled = filled === 0;
+            }
+        }
+
+        function updateDoneButton(isCompleted) {
+            const doneBtn = document.getElementById('doneBtn');
+            if (isCompleted) {
+                doneBtn.classList.add('completed');
+                doneBtn.textContent = '✓ Completed';
+                doneBtn.disabled = false;
+            }
         }
 
         function closeModal() {
             document.getElementById('workoutModal').classList.remove('active');
-            saveWorkoutLog();
+            saveWorkoutLog(false); // Save progress but don't mark complete
         }
 
-        function saveWorkoutLog() {
+        function markComplete() {
+            saveWorkoutLog(true);
+            document.getElementById('workoutModal').classList.remove('active');
+            showAlert('Workout completed!', 'success');
+        }
+
+        function saveWorkoutLog(markCompleted) {
             if (!currentDay) return;
             const workoutKey = `${currentDay}-${new Date().getFullYear()}-${new Date().getMonth()}`;
             const exercises = [];
 
-            document.querySelectorAll('.exercise-weight').forEach(input => {
-                const idx = input.dataset.index;
+            const pickers = document.querySelectorAll('.scroll-picker-inner[data-type="weight"]');
+            pickers.forEach((picker, idx) => {
                 exercises.push({
-                    weight: input.value,
-                    reps: document.querySelectorAll('.exercise-reps')[idx].value,
-                    notes: document.querySelectorAll('.exercise-notes')[idx].value
+                    weight: getPickerValue(idx, 'weight'),
+                    reps: getPickerValue(idx, 'reps'),
+                    notes: document.querySelector(`.exercise-notes[data-index="${idx}"]`)?.value || ''
                 });
             });
 
-            workoutLogs[workoutKey] = { completed: true, exercises, timestamp: new Date().toISOString() };
+            const existing = workoutLogs[workoutKey] || {};
+            workoutLogs[workoutKey] = {
+                ...existing,
+                exercises,
+                completed: markCompleted ? true : (existing.completed || false),
+                timestamp: new Date().toISOString()
+            };
             localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
             renderCalendar();
         }
@@ -2031,6 +2247,26 @@
                 banner.className = 'alert-banner';
             }, 3000);
         }
+
+        // ============= OPTIMIZATIONS =============
+        // Debounce helper for scroll pickers
+        let pickerScrollTimer = null;
+        const originalOnPickerScroll = onPickerScroll;
+        onPickerScroll = function(el) {
+            clearTimeout(pickerScrollTimer);
+            pickerScrollTimer = setTimeout(() => originalOnPickerScroll(el), 50);
+        };
+
+        // Lazy init charts only when tab is first viewed
+        let chartsInitialized = false;
+        const originalSwitchTab = switchTab;
+        switchTab = function(tabName) {
+            originalSwitchTab(tabName);
+            if (!chartsInitialized && (tabName === 'progress' || tabName === 'whoop')) {
+                chartsInitialized = true;
+                // Charts already init on load, just resize
+            }
+        };
 
         // ============= SERVICE WORKER =============
         if ('serviceWorker' in navigator) {
