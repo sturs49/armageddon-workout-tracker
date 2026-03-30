@@ -69,6 +69,29 @@ export default async function handler(req, res) {
       const tokenData = JSON.parse(tokenText);
       const { access_token, refresh_token } = tokenData;
 
+      // Debug: test the token immediately
+      const testResp = await fetch(`${WHOOP_BASE}/developer/v1/cycle?limit=1`, {
+        headers: { Authorization: `Bearer ${access_token}` }
+      });
+      const testStatus = testResp.status;
+      const testBody = await testResp.text();
+      console.log('Token test - status:', testStatus, 'body:', testBody.substring(0, 300));
+
+      // If token doesn't work, show debug info instead of silently failing
+      if (testStatus !== 200) {
+        return res.status(200).send(`
+          <html><body style="background:#000;color:#fff;font-family:monospace;padding:20px;">
+            <h2>WHOOP Debug</h2>
+            <p>Token exchange: SUCCESS</p>
+            <p>Token test against /v1/cycle: ${testStatus}</p>
+            <p>Response: ${testBody.substring(0, 500)}</p>
+            <p>Token (first 20 chars): ${access_token?.substring(0, 20)}...</p>
+            <p>Token fields returned: ${Object.keys(tokenData).join(', ')}</p>
+            <br><a href="${appUrl}" style="color:yellow;">Go back to app</a>
+          </body></html>
+        `);
+      }
+
       return res.redirect(
         `${appUrl}?access_token=${encodeURIComponent(access_token)}` +
         `&refresh_token=${encodeURIComponent(refresh_token)}`
