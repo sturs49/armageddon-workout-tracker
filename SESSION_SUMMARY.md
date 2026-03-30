@@ -265,28 +265,36 @@ Concrete next steps if exploring monetization:
 
 **This is sobering.** Bevel has funding, a team, and already covers most of what we described. However:
 
-### Where Bevel Falls Short (Your Differentiation)
+### Full Competitor Matrix (Deep Research)
 
-1. **No WHOOP direct integration** — Bevel is optimized for Apple Watch. WHOOP users are underserved.
-2. **No AI workout plan generation** — Bevel tracks workouts but doesn't *create* them.
-3. **Weak gym-specific UX** — No per-exercise scroll pickers, progressive overload, or set/rep history.
-4. **No recovery-adaptive programming** — Shows recovery but doesn't auto-modify your workout.
-5. **Privacy** — Bevel is VC-backed = data monetization pressure. Local-first is a real differentiator.
+| App | Wearable | AI Food Photo | AI Adaptive Workouts | Composite Score | Price |
+|-----|----------|---------------|---------------------|----------------|-------|
+| **Vora** | WHOOP, Oura, Garmin, AW, 500+ | Yes (photo, voice, barcode) | Yes (daily plans adapt) | No single score | Free / Pro TBD |
+| **Cora** | WHOOP, Oura, Garmin, AW, Fitbit | No (text-based) | Yes (auto-adjusts) | Partial (Body Charge, no nutrition) | Subscription, iOS only |
+| **Bevel** | AW (best), Oura/Garmin via AH | Yes (AI photo) | No (tracks, doesn't generate) | No (separate scores) | Free + paid |
+| **SensAI** | WHOOP, Oura, Garmin, AW, Fitbit | Partial (chat-based) | Yes (adapts to HRV) | No | $2.99/mo |
+| **Pivot** | WHOOP only | Yes | No (nutrition only) | Partial (nutrition score) | Free / $9.99/mo |
+| **Hume** | AH, Garmin, Fitbit, own hardware | Broken (per reviews) | No | Yes (unified) | Free / $8.99/mo |
+| **SnapCalorie** | None | Yes (best: 16% error) | No | No | Free |
+| **Cal AI** | None | Yes (1M+ downloads) | No | No | Freemium |
 
-### Other Competitors Found
+### The Honest Assessment
 
-| App | What They Do | Price | Gap |
-|-----|-------------|-------|-----|
-| **Bevel** | All-in-one health + AI food photos | Free + premium | No workout generation, no WHOOP, generalist |
-| **Cora Health** | Recovery + training + nutrition + AI | Subscription (iOS only) | Apple Watch only, no food photos |
-| **SensAI** | AI workout plans from HRV/Oura/WHOOP | $15/mo | No food tracking at all |
-| **SnapCalorie** | Best food photo accuracy (16% error) | Free | Zero wearable integration |
-| **Cal AI** | Fast food photo tracking | Freemium | No wearable, no workouts |
-| **MacroFactor** | AI macro coaching | $12/mo | No wearable, no food photos |
+**Vora (askvora.com) is the closest direct competitor.** It has WHOOP/Oura/500+ wearable integrations, AI food photo tracking, AND recovery-adaptive workout plans. Its gap: no unified composite score combining all pillars into one number.
+
+**This changes the monetization calculus significantly.** Vora is well-funded and covers 3 of your 4 planned features.
+
+### Where You Could Still Differentiate
+
+1. **Unified daily composite score** — The one thing nobody does. A single 0-100 number combining recovery + sleep + nutrition + workout completion + activity.
+2. **Gym-specific UX** — Per-exercise scroll pickers, progressive overload tracking, set/rep/weight history. Vora and Bevel are generalists.
+3. **Local-first privacy** — Your data on your device. Vora/Bevel are cloud-first, VC-backed.
+4. **Simplicity** — Vora has 500+ integrations. You have one goal: make today's workout match your body's readiness.
+5. **Open/transparent** — Open source or at minimum transparent about what data goes where.
 
 ### Revised Competitive Position
 
-The original thesis — "nobody does the full stack" — is **partially wrong**. Bevel comes close. But the **gym-specific, strength-training, recovery-adaptive** angle is genuinely unoccupied. Bevel is for the Apple Watch wellness crowd. Your product is for the **WHOOP/Oura gym rat** who wants recovery data to change their actual workout today.
+The original thesis — "nobody does the full stack" — is **wrong**. Vora comes very close. The remaining gaps are: (1) the unified score, (2) serious lifter UX, and (3) privacy-first architecture. Whether those gaps justify a separate product is the real question.
 
 ---
 
@@ -329,6 +337,8 @@ The original thesis — "nobody does the full stack" — is **partially wrong**.
 6. If < 20 people care, keep it personal and enjoy your free custom fitness app.
 
 Risk is low, downside is "you built a great personal app," upside is $1-5K/mo side income.
+
+**Updated verdict after finding Vora:** The monetization case is weaker than originally assessed. Vora covers most of the same ground with real funding. However, building this as a personal tool remains 100% worthwhile — you'll have exactly the UX you want, privacy you control, and a product that fits your specific workflow. If the composite score + gym UX resonates with others, the opportunity is still there. But don't bet the farm on it.
 
 ### Things You Might Be Forgetting
 
