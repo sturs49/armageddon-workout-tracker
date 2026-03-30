@@ -9,7 +9,7 @@ export default async function handler(req, res) {
       const { code } = req.body;
 
       // Exchange code for access token
-      const tokenResponse = await fetch('https://accounts.whoop.com/oauth/oauth2/token', {
+      const tokenResponse = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -42,10 +42,10 @@ export default async function handler(req, res) {
   // Return OAuth URL (so client ID stays server-side)
   if (req.method === 'GET' && req.query.action === 'auth-url') {
     return res.status(200).json({
-      url: `https://accounts.whoop.com/oauth/oauth2/auth?` +
+      url: `https://api.prod.whoop.com/oauth/oauth2/auth?` +
         `client_id=${clientId}` +
         `&response_type=code` +
-        `&scope=read:cycles:heart_rate` +
+        `&scope=read:recovery read:sleep read:workout read:profile read:body_measurement` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}`
     });
   }
