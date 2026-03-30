@@ -246,30 +246,128 @@ Concrete next steps if exploring monetization:
 4. If it sticks, put up a landing page with a waitlist
 5. Post on r/whoop and r/ouraring — gauge interest before building auth/payments
 
-**Bottom line:** The personal use case is already valuable. The monetization angle is real but modest — this is more likely a solid $500-2K/mo side project than a venture-scale business. The food photo AI + multi-wearable aggregation angle is genuinely differentiated though, and the market is actively looking for it.
+**Bottom line:** See "Revised Profitability Assessment" below for updated analysis after competitor research.
+
+---
+
+## Competitor Deep Dive (March 29 Research)
+
+### The Honest Truth: Bevel Exists
+
+**Bevel** (bevel.health) is the closest direct competitor and is VC-backed by General Catalyst. It does:
+- All-in-one health dashboard (sleep, recovery, strain, stress, nutrition, fitness)
+- AI food photo logging with 5M+ verified food database
+- Apple Watch / Oura / Garmin integration via Apple Health
+- Daily scores and personalized insights
+- Blood glucose monitor integration (Dexcom, Libre)
+- Cycle tracking
+- Free tier + paid premium
+
+**This is sobering.** Bevel has funding, a team, and already covers most of what we described. However:
+
+### Where Bevel Falls Short (Your Differentiation)
+
+1. **No WHOOP direct integration** — Bevel is optimized for Apple Watch. WHOOP users are underserved.
+2. **No AI workout plan generation** — Bevel tracks workouts but doesn't *create* them.
+3. **Weak gym-specific UX** — No per-exercise scroll pickers, progressive overload, or set/rep history.
+4. **No recovery-adaptive programming** — Shows recovery but doesn't auto-modify your workout.
+5. **Privacy** — Bevel is VC-backed = data monetization pressure. Local-first is a real differentiator.
+
+### Other Competitors Found
+
+| App | What They Do | Price | Gap |
+|-----|-------------|-------|-----|
+| **Bevel** | All-in-one health + AI food photos | Free + premium | No workout generation, no WHOOP, generalist |
+| **Cora Health** | Recovery + training + nutrition + AI | Subscription (iOS only) | Apple Watch only, no food photos |
+| **SensAI** | AI workout plans from HRV/Oura/WHOOP | $15/mo | No food tracking at all |
+| **SnapCalorie** | Best food photo accuracy (16% error) | Free | Zero wearable integration |
+| **Cal AI** | Fast food photo tracking | Freemium | No wearable, no workouts |
+| **MacroFactor** | AI macro coaching | $12/mo | No wearable, no food photos |
+
+### Revised Competitive Position
+
+The original thesis — "nobody does the full stack" — is **partially wrong**. Bevel comes close. But the **gym-specific, strength-training, recovery-adaptive** angle is genuinely unoccupied. Bevel is for the Apple Watch wellness crowd. Your product is for the **WHOOP/Oura gym rat** who wants recovery data to change their actual workout today.
+
+---
+
+## Revised Profitability Assessment
+
+### Should You Monetize? Honest Framework
+
+**FOR monetization:**
+- Gym-specific + WHOOP/Oura niche is real and underserved
+- Bevel validates market but targets different user (wellness generalist vs gym-focused)
+- AI workout generation based on recovery is genuinely novel
+- WHOOP users already pay $30/mo — proven spenders
+- $15-20/mo defensible for "AI personal trainer" positioning
+
+**AGAINST monetization:**
+- Bevel has VC money and head start on generalist version
+- Auth, payments, user management, support is real work
+- API costs: ~$4.65/user/mo (food photos + workout generation)
+- App Store review unpredictable, Apple takes 30%
+- Solo founder vs funded teams
+
+### Revised Revenue Projections (at $15/mo)
+
+| Scenario | Users | Revenue/mo | Profit/mo | Timeline | Realistic? |
+|----------|-------|-----------|----------|----------|------------|
+| Personal + friends | 10 | $150 | $80 | Immediate | Yes |
+| Niche launch | 100 | $1,500 | $850 | 2-3 months | Yes — Reddit posts |
+| Small traction | 500 | $7,500 | $4,250 | 6-12 months | Possible w/ App Store |
+| Real business | 2,000 | $30,000 | $17,000 | 12-18 months | Requires marketing |
+
+### The Verdict
+
+**Worth exploring as a focused side project. Not worth quitting your job for.**
+
+1. Build it for yourself (already doing this)
+2. Add Oura for your GF (validates multi-wearable)
+3. Add AI food photos + recovery-adaptive workouts (the differentiation)
+4. Use it for 3-4 weeks. If it changes your routine, keep going.
+5. Post on Reddit. If 50 people sign up for a waitlist in a week, build payments.
+6. If < 20 people care, keep it personal and enjoy your free custom fitness app.
+
+Risk is low, downside is "you built a great personal app," upside is $1-5K/mo side income.
+
+### Things You Might Be Forgetting
+
+1. **API TOS** — WHOOP and Oura APIs have commercial use restrictions. Read before charging.
+2. **App Store fees** — Apple takes 30% (15% for < $1M). $15/mo becomes $10.50.
+3. **GDPR** — EU users need real data handling procedures.
+4. **Token security** — Multi-user requires real database, not localStorage.
+5. **Rate limits** — WHOOP 120 req/min. 500 users syncing every 15 min needs batching.
+6. **Food photo accuracy** — Claude Vision is good but not SnapCalorie-good (16% error). Manage expectations.
+7. **Churn** — Fitness apps have 75% first-month churn. Daily food photos = retention lever.
+8. **Liability** — "AI told me to lift heavy on bad recovery." You need disclaimers.
+9. **Offline conflicts** — Two devices editing same workout offline = merge conflicts.
+10. **Onboarding friction** — Every OAuth connection is a dropout point. Manual mode must be seamless.
 
 ---
 
 ## Brand Strategy
 
-### Brand Name Options
+### Brand Name Options — Updated After Conflict Research
 
-"ARMageddon" works for your personal arm-focused program but doesn't scale — it's too niche and hard to trademark. For a product that spans all workouts + nutrition + wearables, you need something broader.
+"ARMageddon" works for your personal arm-focused program but doesn't scale.
 
-**Naming criteria:** Short (1-2 syllables ideal), easy to spell, available domain, conveys motion/progress/wholeness, works as both app name and brand.
+**Names researched and ELIMINATED:**
+- **Vora** — DEAD. Vora AI health/daily plan app exists + drinkvora.com supplement brand
+- **Edge** — DEAD. Microsoft Edge dominates all SEO. Edge Fitness Clubs chain exists.
+- **FitEdge** — DEAD. FitEdge Training Inc, Fit Edge gym, USPTO trademark "THE FITNESS EDGE"
+- **Edgr** — DEAD. edgr.app exists (adult tracker), edgr.io (investment research)
 
-| Name | Vibe | Domain Availability | Why It Works |
-|------|------|-------------------|--------------|
-| **Vora** | Clean, modern, premium | vora.app likely available | Sounds like "voracious" — hunger for progress. Short, unique, memorable. Gender-neutral. |
-| **Tread** | Grounded, forward motion | tread.fit / treadapp.com | Implies steady progress, works across fitness types. Strong single syllable. |
-| **Reco** | Tech-forward, friendly | reco.fit / recoapp.com | Short for "recovery" — your core differentiator. Fun, modern, easy to say. |
-| **Caliber** | Premium, precise, data-driven | caliber.app (taken by competitor) | Perfect meaning but competitor exists. Could variant: Calibra, Kaliber. |
-| **Forge** | Strength, creation, transformation | forgefit.app / forge.health | "Forged in the gym." Strong imagery. Works for both lifting and holistic health. |
-| **Pulse** | Wearable-native, vital, alive | pulse.fit (likely taken) | Directly tied to wearable data (heart rate, HRV). Energetic. |
-| **Kinetic** | Scientific, movement, energy | kinetic.fit / kineticapp.com | Physics term for energy in motion. Smart, clean, memorable. |
-| **Steadí** | Consistency, balance, calm strength | steadi.app | Accented i is distinctive. Conveys the daily habit angle. |
+**Remaining viable options:**
 
-**Top 3 recommendation:** Vora, Forge, or Reco. All are short, unique, domain-friendly, and don't box you into one feature.
+| Name | Vibe | Status | Why It Works |
+|------|------|--------|--------------|
+| **Forge** | Strength, creation | CLEAN — no fitness app conflicts | "Forged in the gym." Works for lifting + holistic health. Strong single syllable. |
+| **Tread** | Forward motion | Likely clean | Implies steady progress. Works across all fitness types. |
+| **Reco** | Tech-forward, friendly | Needs verification | Short for "recovery" — the core differentiator. |
+| **Kinetic** | Scientific, movement | Needs verification | Energy in motion. Smart, clean, gender-neutral. |
+| **Verge** | Edge-adjacent, ambition | The Verge (publication) may cause SEO issues | "On the verge" — same energy as Edge without the conflicts. |
+
+**Top recommendation: Forge.** Cleanest namespace, strongest imagery, domains likely available (forgefit.app, forge.health, getforge.app).
 
 ### Brand Colors
 
