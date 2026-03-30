@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   const clientId = process.env.WHOOP_CLIENT_ID;
   const clientSecret = process.env.WHOOP_CLIENT_SECRET;
-  const redirectUri = `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/whoop`;
+  const redirectUri = process.env.REDIRECT_URI || `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/whoop`;
 
   // OAuth Callback Handler
   if (req.method === 'POST' && req.body.code) {
