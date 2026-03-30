@@ -751,7 +751,10 @@
                     </div>
                     <button class="btn" onclick="saveWeight()" style="width: 100%;">Save Weight</button>
                 </div>
-                <button class="btn-secondary" onclick="closeModal()" style="width: 100%;">Done</button>
+                <div class="btn-group" style="flex-direction: column; gap: 8px;">
+                    <button class="btn" id="markCompleteBtn" onclick="markWorkoutComplete()" style="width: 100%;">✓ Mark Workout Complete</button>
+                    <button class="btn-secondary" onclick="closeModal()" style="width: 100%;">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -991,18 +994,93 @@
 
             document.getElementById('modalExercises').innerHTML = exercisesHtml;
             document.getElementById('workoutModal').classList.add('active');
+
+            // Restore saved data if any
+            const workoutKey = `${dayKey}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+            const log = workoutLogs[workoutKey];
+            if (log && log.exercises) {
+                log.exercises.forEach((ex, idx) => {
+                    const weightInputs = document.querySelectorAll('.exercise-weight');
+                    const repsInputs = document.querySelectorAll('.exercise-reps');
+                    const notesInputs = document.querySelectorAll('.exercise-notes');
+                    if (weightInputs[idx]) weightInputs[idx].value = ex.weight || '';
+                    if (repsInputs[idx]) repsInputs[idx].value = ex.reps || '';
+                    if (notesInputs[idx]) notesInputs[idx].value = ex.notes || '';
+                });
+            }
+
+            // Update button state
+            const btn = document.getElementById('markCompleteBtn');
+            if (log && log.completed) {
+                btn.textContent = '✓ Completed — Undo?';
+                btn.style.background = 'var(--success)';
+                btn.onclick = () => undoComplete(dayKey);
+            } else {
+                btn.textContent = '✓ Mark Workout Complete';
+                btn.style.background = 'var(--accent)';
+                btn.onclick = () => markWorkoutComplete();
+            }
         }
 
         function closeModal() {
             document.getElementById('workoutModal').classList.remove('active');
-            saveWorkoutLog();
+            saveWorkoutProgress(); // Save inputs without marking complete
         }
 
-        function saveWorkoutLog() {
+        function saveWorkoutProgress() {
             if (!currentDay) return;
             const workoutKey = `${currentDay}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+            const exercises = collectExerciseInputs();
+
+            // Preserve existing completion status
+            const existing = workoutLogs[workoutKey];
+            workoutLogs[workoutKey] = {
+                completed: existing ? existing.completed : false,
+                exercises,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
+            renderCalendar();
+        }
+
+        function markWorkoutComplete() {
+            if (!currentDay) return;
+            const workoutKey = `${currentDay}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+            const exercises = collectExerciseInputs();
+
+            // Check if at least one exercise has weight or reps filled in
+            const hasData = exercises.some(ex => ex.weight || ex.reps);
+            if (!hasData) {
+                if (!confirm('No weights or reps logged yet. Mark as complete anyway?')) return;
+            }
+
+            workoutLogs[workoutKey] = { completed: true, exercises, timestamp: new Date().toISOString() };
+            localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
+
+            // Visual feedback
+            const btn = document.getElementById('markCompleteBtn');
+            btn.textContent = '✓ Completed!';
+            btn.style.background = 'var(--success)';
+            setTimeout(() => {
+                closeModal();
+            }, 600);
+        }
+
+        function undoComplete(dayKey) {
+            const workoutKey = `${dayKey}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+            if (workoutLogs[workoutKey]) {
+                workoutLogs[workoutKey].completed = false;
+                localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
+            }
+            const btn = document.getElementById('markCompleteBtn');
+            btn.textContent = '✓ Mark Workout Complete';
+            btn.style.background = 'var(--accent)';
+            btn.onclick = () => markWorkoutComplete();
+            renderCalendar();
+        }
+
+        function collectExerciseInputs() {
             const exercises = [];
-            
             document.querySelectorAll('.exercise-weight').forEach(input => {
                 const idx = input.dataset.index;
                 exercises.push({
@@ -1011,10 +1089,7 @@
                     notes: document.querySelectorAll('.exercise-notes')[idx].value
                 });
             });
-
-            workoutLogs[workoutKey] = { completed: true, exercises, timestamp: new Date().toISOString() };
-            localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
-            renderCalendar();
+            return exercises;
         }
 
         // ============= WEIGHT TRACKING =============
