@@ -4,26 +4,49 @@ export default async function handler(req, res) {
   const redirectUri = process.env.REDIRECT_URI || `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/whoop`;
   const appUrl = process.env.APP_URL || redirectUri.replace('/api/whoop', '/workout_tracker_whoop.html');
 
-  const WHOOP_API = 'https://api.prod.whoop.com/developer';
+  const WHOOP_BASE = 'https://api.prod.whoop.com';
+  const TOKEN_URL = `${WHOOP_BASE}/oauth/oauth2/token`;
 
   // Helper: fetch from WHOOP API with auth
   async function whoopFetch(path, token) {
-    const resp = await fetch(`${WHOOP_API}${path}`, {
+    const url = `${WHOOP_BASE}/developer${path}`;
+    console.log(`Fetching: ${url}`);
+    const resp = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!resp.ok) {
       const text = await resp.text();
-      throw new Error(`WHOOP API ${path} returned ${resp.status}: ${text}`);
+      console.error(`WHOOP API ${path} returned ${resp.status}: ${text}`);
+      throw new Error(`${resp.status}: ${text}`);
     }
     return resp.json();
   }
 
-  // OAuth Callback - WHOOP redirects here with ?code= as a GET
+  // Helper: refresh access token
+  async function refreshToken(refresh_token) {
+    const resp = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token,
+        client_id: clientId,
+        client_secret: clientSecret
+      }).toString()
+    });
+    if (!resp.ok) {
+      throw new Error('Token refresh failed');
+    }
+    return resp.json();
+  }
+
+  // OAuth Callback - WHOOP redirects here with ?code= as GET
   if (req.method === 'GET' && req.query.code) {
     try {
       const { code } = req.query;
 
-      const tokenResponse = await fetch(`${WHOOP_API}/../oauth/oauth2/token`, {
+      console.log('Exchanging code for token at:', TOKEN_URL);
+      const tokenResponse = await fetch(TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -35,14 +58,21 @@ export default async function handler(req, res) {
         }).toString()
       });
 
+      const tokenText = await tokenResponse.text();
+      console.log('Token response status:', tokenResponse.status);
+      console.log('Token response body:', tokenText.substring(0, 200));
+
       if (!tokenResponse.ok) {
-        const err = await tokenResponse.text();
-        console.error('Token exchange failed:', err);
         return res.redirect(`${appUrl}?auth_error=token_exchange_failed`);
       }
 
-      const { access_token, refresh_token } = await tokenResponse.json();
-      return res.redirect(`${appUrl}?access_token=${encodeURIComponent(access_token)}&refresh_token=${encodeURIComponent(refresh_token)}`);
+      const tokenData = JSON.parse(tokenText);
+      const { access_token, refresh_token } = tokenData;
+
+      return res.redirect(
+        `${appUrl}?access_token=${encodeURIComponent(access_token)}` +
+        `&refresh_token=${encodeURIComponent(refresh_token)}`
+      );
     } catch (error) {
       console.error('WHOOP auth error:', error);
       return res.redirect(`${appUrl}?auth_error=auth_failed`);
@@ -54,7 +84,7 @@ export default async function handler(req, res) {
     const { randomBytes } = await import('crypto');
     const state = randomBytes(16).toString('hex');
     return res.status(200).json({
-      url: `https://api.prod.whoop.com/oauth/oauth2/auth?` +
+      url: `${WHOOP_BASE}/oauth/oauth2/auth?` +
         `client_id=${clientId}` +
         `&response_type=code` +
         `&scope=read:recovery read:sleep read:workout read:profile read:body_measurement` +
@@ -63,16 +93,44 @@ export default async function handler(req, res) {
     });
   }
 
-  // Get WHOOP Data - fetch from multiple endpoints
+  // Refresh token endpoint
+  if (req.method === 'POST' && req.body?.refresh_token) {
+    try {
+      const tokenData = await refreshToken(req.body.refresh_token);
+      return res.status(200).json({
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token
+      });
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return res.status(401).json({ error: 'Token refresh failed' });
+    }
+  }
+
+  // Get WHOOP Data
   if (req.method === 'GET' && req.query.token) {
     try {
       const token = req.query.token;
 
-      // Fetch latest cycle, recovery, and sleep in parallel
-      const [cycleData, sleepData] = await Promise.all([
-        whoopFetch('/v1/cycle?limit=1', token),
-        whoopFetch('/v1/activity/sleep?limit=1', token)
-      ]);
+      // First try to fetch cycle - if 401, token is expired
+      let cycleData;
+      try {
+        cycleData = await whoopFetch('/v1/cycle?limit=1', token);
+      } catch (e) {
+        if (e.message.startsWith('401')) {
+          return res.status(401).json({ error: 'Token expired', needsRefresh: true });
+        }
+        throw e;
+      }
+
+      // Fetch sleep in parallel
+      let sleepData;
+      try {
+        sleepData = await whoopFetch('/v1/activity/sleep?limit=1', token);
+      } catch (e) {
+        console.error('Sleep fetch failed:', e.message);
+        sleepData = { records: [] };
+      }
 
       // Parse cycle
       const cycle = cycleData.records?.[0];
@@ -94,7 +152,6 @@ export default async function handler(req, res) {
             rhr = recoveryData.score.resting_heart_rate || 0;
           }
         } catch (e) {
-          // 404 = no recovery for this cycle, that's OK
           console.log('No recovery for cycle:', e.message);
         }
       }
@@ -105,56 +162,20 @@ export default async function handler(req, res) {
       if (sleep?.score_state === 'SCORED' && sleep?.score?.stage_summary) {
         const totalSleepMs = sleep.score.stage_summary.total_in_bed_time_milli
           - sleep.score.stage_summary.total_awake_time_milli;
-        sleepHours = totalSleepMs / 3600000; // ms to hours
+        sleepHours = totalSleepMs / 3600000;
       }
 
       return res.status(200).json({
         recovery,
         sleep: sleepHours,
         strain,
-        steps: 0, // Steps not available in WHOOP API v1
+        steps: 0,
         hrv: Math.round(hrv),
-        rhr,
-        cycleId: cycle?.id || null,
-        debug: {
-          cycleScoreState: cycle?.score_state,
-          sleepScoreState: sleep?.score_state,
-          hasCycle: !!cycle,
-          hasSleep: !!sleep
-        }
+        rhr
       });
     } catch (error) {
       console.error('WHOOP data fetch error:', error.message);
       return res.status(500).json({ error: 'Failed to fetch data', details: error.message });
-    }
-  }
-
-  // POST handler for client-side token exchange (fallback)
-  if (req.method === 'POST' && req.body?.code) {
-    try {
-      const { code } = req.body;
-
-      const tokenResponse = await fetch('https://api.prod.whoop.com/oauth/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirectUri
-        }).toString()
-      });
-
-      if (!tokenResponse.ok) {
-        return res.status(400).json({ error: 'Token exchange failed' });
-      }
-
-      const { access_token, refresh_token } = await tokenResponse.json();
-      return res.status(200).json({ accessToken: access_token, refreshToken: refresh_token });
-    } catch (error) {
-      console.error('WHOOP auth error:', error);
-      return res.status(500).json({ error: 'Authentication failed' });
     }
   }
 

@@ -1257,10 +1257,14 @@
             // Check for OAuth callback (server redirects back with tokens in URL)
             const params = new URLSearchParams(window.location.search);
             const accessToken = params.get('access_token');
+            const refreshTokenParam = params.get('refresh_token');
             const authError = params.get('auth_error');
             if (accessToken) {
                 whoopToken = accessToken;
                 localStorage.setItem('whoopToken', whoopToken);
+                if (refreshTokenParam) {
+                    localStorage.setItem('whoopRefreshToken', refreshTokenParam);
+                }
                 window.history.replaceState({}, document.title, window.location.pathname);
                 updateWHOOPUI();
                 showAlert('WHOOP connected successfully!', 'success');
@@ -1327,11 +1331,50 @@
         }
 
         // ============= WHOOP DATA SYNC =============
+        async function refreshAccessToken() {
+            const refreshToken = localStorage.getItem('whoopRefreshToken');
+            if (!refreshToken) return false;
+
+            try {
+                const response = await fetch(`${API_BASE}/whoop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    whoopToken = data.access_token;
+                    localStorage.setItem('whoopToken', whoopToken);
+                    if (data.refresh_token) {
+                        localStorage.setItem('whoopRefreshToken', data.refresh_token);
+                    }
+                    return true;
+                }
+            } catch (error) {
+                console.error('Token refresh error:', error);
+            }
+            return false;
+        }
+
         async function syncWHOOPData() {
             if (!whoopToken) return;
 
             try {
-                const response = await fetch(`${API_BASE}/whoop?token=${whoopToken}`);
+                let response = await fetch(`${API_BASE}/whoop?token=${encodeURIComponent(whoopToken)}`);
+
+                // If 401, try refreshing the token
+                if (response.status === 401) {
+                    console.log('Token expired, attempting refresh...');
+                    const refreshed = await refreshAccessToken();
+                    if (refreshed) {
+                        response = await fetch(`${API_BASE}/whoop?token=${encodeURIComponent(whoopToken)}`);
+                    } else {
+                        showAlert('WHOOP session expired. Please reconnect.', 'error');
+                        return;
+                    }
+                }
+
                 if (response.ok) {
                     const data = await response.json();
                     whoopData = {
@@ -1344,12 +1387,19 @@
                     };
 
                     // Track recovery history for trends
-                    recoveryHistory.push({
-                        date: new Date().toISOString().split('T')[0],
+                    const today = new Date().toISOString().split('T')[0];
+                    const existingIdx = recoveryHistory.findIndex(r => r.date === today);
+                    const entry = {
+                        date: today,
                         recovery: whoopData.recovery,
                         sleep: whoopData.sleep,
                         strain: whoopData.strain
-                    });
+                    };
+                    if (existingIdx >= 0) {
+                        recoveryHistory[existingIdx] = entry;
+                    } else {
+                        recoveryHistory.push(entry);
+                    }
 
                     // Keep only last 30 days
                     if (recoveryHistory.length > 30) {
@@ -1363,9 +1413,15 @@
                     updateHeaderMetrics();
                     renderCalendar();
                     checkAlerts();
+                    showAlert('WHOOP data synced!', 'success');
+                } else {
+                    const err = await response.json();
+                    console.error('Sync failed:', err);
+                    showAlert('Sync failed: ' + (err.details || err.error), 'error');
                 }
             } catch (error) {
                 console.error('WHOOP sync error:', error);
+                showAlert('Sync error: ' + error.message, 'error');
             }
         }
 
