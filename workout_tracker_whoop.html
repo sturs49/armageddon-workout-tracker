@@ -2,8 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ARMageddon + WHOOP Tracker</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ARMageddon">
+    <link rel="apple-touch-icon" href="/icons/icon-180.png">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -1245,11 +1254,19 @@
             document.getElementById('thresholdLight').value = config.thresholdLight;
             document.getElementById('minSleepAlert').value = config.minSleepAlert;
 
-            // Check for OAuth callback
+            // Check for OAuth callback (server redirects back with tokens in URL)
             const params = new URLSearchParams(window.location.search);
-            const code = params.get('code');
-            if (code) {
-                await handleWHOOPCallback(code);
+            const accessToken = params.get('access_token');
+            const authError = params.get('auth_error');
+            if (accessToken) {
+                whoopToken = accessToken;
+                localStorage.setItem('whoopToken', whoopToken);
+                window.history.replaceState({}, document.title, window.location.pathname);
+                updateWHOOPUI();
+                showAlert('WHOOP connected successfully!', 'success');
+            } else if (authError) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+                showAlert('Failed to connect WHOOP. Please try again.', 'error');
             }
 
             // Check if WHOOP is connected
@@ -1957,6 +1974,11 @@
             setTimeout(() => {
                 banner.className = 'alert-banner';
             }, 3000);
+        }
+
+        // ============= SERVICE WORKER =============
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
         }
     </script>
 </body>
