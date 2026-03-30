@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARMageddon + WHOOP Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #000;
+            --accent: #FFFF00;
+            --accent-dark: #FFD700;
+            --text-light: #f5f5f5;
+            --text-dark: #1a1a1a;
+            --card-bg: #1a1a1a;
+            --border: #333;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #ef4444;
+            --recovery-high: #22c55e;
+            --recovery-good: #84cc16;
+            --recovery-fair: #f59e0b;
+            --recovery-poor: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--primary);
+            color: var(--text-light);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a1a1a 100%);
+            border-bottom: 3px solid var(--accent);
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(255, 255, 0, 0.1);
+        }
+
+        .header-top {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--text-light) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .whoop-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            color: var(--accent);
+        }
+
+        .whoop-status.connected::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .whoop-status.disconnected::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--error);
+            border-radius: 50%;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-metrics {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--accent);
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-status {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .status-high { background: rgba(34, 197, 94, 0.2); color: var(--recovery-high); }
+        .status-good { background: rgba(132, 204, 22, 0.2); color: var(--recovery-good); }
+        .status-fair { background: rgba(245, 158, 11, 0.2); color: var(--recovery-fair); }
+        .status-poor { background: rgba(239, 68, 68, 0.2); color: var(--recovery-poor); }
+
+        .recovery-indicator {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .recovery-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--recovery-poor);
+            padding: 12px 16px;
+            margin: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #fca5a5;
+            display: none;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .alert-banner.show {
+            display: block;
+        }
+
+        .alert-banner.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--recovery-fair);
+            color: #fcd34d;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .nav-tab {
+            padding: 10px 16px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-light);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .nav-tab:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .nav-tab.active {
+            background: var(--accent);
+            color: var(--text-dark);
+            border-color: var(--accent);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px 32px;
+        }
+
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .day-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .day-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 8px 24px rgba(255, 255, 0, 0.15);
+            transform: translateY(-4px);
+        }
+
+        .day-card.completed {
+            border-color: var(--success);
+            background: linear-gradient(135deg, var(--card-bg) 0%, rgba(74, 222, 128, 0.05) 100%);
+        }
+
+        .day-recovery-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--border);
+        }
+
+        .day-recovery-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            margin-top: 4px;
+        }
+
+        .day-name {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--text-light);
+        }
+
+        .day-date {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .completion-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 12px;
+        }
+
+        .adjustment-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .adjustment-full {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--recovery-high);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .adjustment-modified {
+            background: rgba(132, 204, 22, 0.2);
+            color: var(--recovery-good);
+            border: 1px solid rgba(132, 204, 22, 0.5);
+        }
+
+        .adjustment-light {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--recovery-fair);
+            border: 1px solid rgba(245, 158, 11, 0.5);
+        }
+
+        .adjustment-recovery {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+
+        /* Workout Type Badge */
+        .workout-type {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .workout-type.arm {
+            background: rgba(255, 255, 0, 0.2);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .workout-type.cardio {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid #fca5a5;
+        }
+
+        .workout-type.strength {
+            background: rgba(74, 222, 128, 0.2);
+            color: #86efac;
+            border: 1px solid #86efac;
+        }
+
+        .workout-type.recovery {
+            background: rgba(96, 165, 250, 0.2);
+            color: #bfdbfe;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Meals */
+        .meals {
+            background: rgba(255, 255, 0, 0.05);
+            border-left: 3px solid var(--accent);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 12px 0;
+            font-size: 12px;
+        }
+
+        .meal-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            color: #aaa;
+        }
+
+        .meal-time {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        /* Exercises List */
+        .exercises-list {
+            margin: 12px 0 0 0;
+        }
+
+        .exercise-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .exercise-item:hover {
+            border-color: var(--accent);
+            background: rgba(255, 255, 0, 0.03);
+        }
+
+        .exercise-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+
+        .exercise-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .input-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        textarea {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            padding: 8px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 0, 0.05);
+            box-shadow: 0 0 8px rgba(255, 255, 0, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 36px;
+            font-size: 12px;
+            grid-column: 1 / -1;
+        }
+
+        /* Progress Section */
+        .progress-section {
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 0, 0.02);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 0, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--warning);
+        }
+
+        /* Buttons */
+        .btn {
+            background: var(--accent);
+            color: var(--text-dark);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background: var(--accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 255, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--accent);
+            border: 2px solid var(--accent);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 0, 0.1);
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 16px 16px 0 0;
+            padding: 24px;
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            animation: slideUp 0.3s ease;
+            border: 2px solid var(--border);
+            border-bottom: none;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            font-size: 22px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            color: var(--accent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 24px;
+            cursor: pointer;
+            font-weight: 900;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: var(--accent-dark);
+        }
+
+        .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Weight Input */
+        .weight-input-section {
+            background: rgba(255, 255, 0, 0.05);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .weight-input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 0, 0.3);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 20px;
+            }
+
+            .header-metrics {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+
+            .metric-card {
+                padding: 8px;
+            }
+
+            .metric-value {
+                font-size: 16px;
+            }
+
+            .calendar-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .exercise-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-content {
+                max-width: 100%;
+                border-radius: 16px;
+                max-height: 90vh;
+            }
+
+            .chart-container {
+                height: 250px;
+                padding: 12px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+
+            .whoop-status {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Scroll styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--card-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-dark);
+        }
+
+        /* Utility */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-20 {
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .justify-between {
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with WHOOP Metrics -->
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">⚡ ARMageddon</div>
+            <div class="whoop-status" id="whoopStatus">
+                <span>Connecting...</span>
+            </div>
+        </div>
+        <div class="header-metrics" id="headerMetrics">
+            <div class="metric-card">
+                <span class="metric-label">Recovery</span>
+                <span class="metric-value" id="recoveryScore">—</span>
+                <div class="recovery-indicator">
+                    <div class="recovery-fill" id="recoveryFill" style="width: 50%; background: var(--recovery-good);"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Sleep</span>
+                <span class="metric-value" id="sleepDuration">—</span>
+                <span class="metric-label">hours</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Strain</span>
+                <span class="metric-value" id="strainLevel">—</span>
+                <span class="metric-status" id="strainStatus">—</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Steps</span>
+                <span class="metric-value" id="stepCount">—</span>
+                <span class="metric-label">/10k</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">HRV</span>
+                <span class="metric-value" id="hrvValue">—</span>
+                <span class="metric-label">ms</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Current Weight</span>
+                <span class="metric-value" id="currentWeight">218</span>
+                <span class="metric-label">lbs</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="alert-banner" id="alertBanner"></div>
+
+    <!-- Navigation -->
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('schedule')">Schedule</button>
+        <button class="nav-tab" onclick="switchTab('progress')">Progress</button>
+        <button class="nav-tab" onclick="switchTab('whoop')">WHOOP Data</button>
+        <button class="nav-tab" onclick="switchTab('meals')">Meals</button>
+        <button class="nav-tab" onclick="switchTab('settings')">Settings</button>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+        <!-- Schedule Tab -->
+        <div id="schedule-tab" class="tab-content">
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <!-- Progress Tab -->
+        <div id="progress-tab" class="tab-content hidden">
+            <div class="progress-section">
+                <div class="section-title">📊 Weight Progress</div>
+                <div class="chart-container">
+                    <canvas id="weightChart"></canvas>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="startWeight">218</div>
+                        <div class="stat-label">Starting Weight</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="avgWeekly">—</div>
+                        <div class="stat-label">Weekly Avg</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="lowestWeight">218</div>
+                        <div class="stat-label">Lowest</div>
+                        <div class="stat-change" id="lowestChange"></div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="highestWeight">218</div>
+                        <div class="stat-label">Highest</div>
+                        <div class="stat-change" id="highestChange"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <div class="section-title">💪 Recovery vs Workouts</div>
+                <div class="chart-container">
+                    <canvas id="recoveryVsWorkoutsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- WHOOP Data Tab -->
+        <div id="whoop-tab" class="tab-content hidden">
+            <div class="progress-section">
+                <div class="section-title">📱 WHOOP Metrics Dashboard</div>
+                <div id="whoopDashboard" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div class="stat-box">
+                        <div class="stat-label">Recovery Score</div>
+                        <div class="stat-value" id="whoopRecovery">—</div>
+                        <div class="recovery-indicator" style="margin-top: 8px;">
+                            <div class="recovery-fill" id="whoopRecoveryFill" style="width: 50%; background: var(--recovery-good);"></div>
+                        </div>
+                        <div class="stat-label" style="margin-top: 8px;" id="recoveryTrend">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Sleep Quality</div>
+                        <div class="stat-value" id="whoopSleep">—</div>
+                        <div class="stat-label" style="margin-top: 8px;">hours</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Strain Level</div>
+                        <div class="stat-value" id="whoopStrain">—</div>
+                        <div class="stat-label" id="strainRecommendation" style="margin-top: 8px;">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Daily Steps</div>
+                        <div class="stat-value" id="whoopSteps">—</div>
+                        <div class="stat-label" style="margin-top: 8px;">/10,000</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Heart Rate Variability</div>
+                        <div class="stat-value" id="whoopHRV">—</div>
+                        <div class="stat-label" style="margin-top: 8px;">ms</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Last Updated</div>
+                        <div class="stat-value" id="lastUpdated" style="font-size: 14px;">—</div>
+                        <button class="btn" style="width: 100%; margin-top: 8px; padding: 8px;" onclick="syncWHOOPData()">Sync Now</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <div class="section-title">📈 7-Day Trends</div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Meals Tab -->
+        <div id="meals-tab" class="tab-content hidden">
+            <div class="progress-section">
+                <div class="section-title">🍽️ Daily Meal Timing</div>
+                <div style="margin-bottom: 20px;">
+                    <p style="color: #aaa; font-size: 14px; margin-bottom: 16px;">Stay fueled for maximum gains with optimized meal timing throughout your day.</p>
+
+                    <div class="meals" style="border-left: 4px solid #fbbf24; background: rgba(251, 191, 36, 0.05);">
+                        <div style="font-weight: 900; color: #fbbf24; margin-bottom: 8px;">🥞 Breakfast: 7:30 AM</div>
+                        <div style="color: #aaa; font-size: 13px; line-height: 1.6;">
+                            Post-cardio refuel • Protein + Carbs<br/>
+                            <strong>Ideal:</strong> 2 eggs + oatmeal + banana OR Greek yogurt + granola + berries<br/>
+                            <strong>Macros:</strong> 30-40g protein, 40-50g carbs
+                        </div>
+                    </div>
+
+                    <div class="meals" style="border-left: 4px solid var(--accent); background: rgba(255, 255, 0, 0.05); margin-top: 12px;">
+                        <div style="font-weight: 900; color: var(--accent); margin-bottom: 8px;">🥗 Lunch: 12:00 PM</div>
+                        <div style="color: #aaa; font-size: 13px; line-height: 1.6;">
+                            Walking lunch break • 2000+ steps<br/>
+                            <strong>Ideal:</strong> Grilled chicken + brown rice + broccoli OR salmon + sweet potato + green beans<br/>
+                            <strong>Macros:</strong> 30-35g protein, 40-45g carbs, vegetables
+                        </div>
+                    </div>
+
+                    <div class="meals" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.05); margin-top: 12px;">
+                        <div style="font-weight: 900; color: #fca5a5; margin-bottom: 8px;">🍽️ Dinner: 6:45 PM</div>
+                        <div style="color: #aaa; font-size: 13px; line-height: 1.6;">
+                            Post-gym recovery • Within 1-2 hours of training<br/>
+                            <strong>Ideal:</strong> 6oz lean beef/chicken + sweet potato + roasted veggies OR pasta + white fish + peas<br/>
+                            <strong>Macros:</strong> 40-50g protein, 50-60g carbs
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(96, 165, 250, 0.05); border: 1px solid rgba(96, 165, 250, 0.3); padding: 12px; border-radius: 8px; margin-top: 12px;">
+                        <div style="font-weight: 700; color: #bfdbfe; font-size: 13px; margin-bottom: 8px;">💧 Hydration</div>
+                        <div style="color: #aaa; font-size: 13px;">
+                            • Pre-cardio: 1-2 glasses water + black coffee (fasted)<br/>
+                            • During cardio: Sip water as needed<br/>
+                            • Daily target: 2-3 liters water (more on gym days)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content hidden">
+            <div class="progress-section">
+                <div class="section-title">⚙️ Account & Settings</div>
+
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--accent); margin-bottom: 12px; font-size: 16px;">WHOOP Connection</h3>
+                    <div id="whoopAuth" style="display: flex; flex-direction: column; gap: 12px;">
+                        <button class="btn" onclick="authenticateWHOOP()" style="width: 100%;">🔗 Connect WHOOP Account</button>
+                        <p style="font-size: 12px; color: #888; text-align: center;">You'll be redirected to WHOOP to authorize this app</p>
+                    </div>
+                    <div id="whoopConnected" style="display: none; padding: 16px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px;">
+                        <p style="color: var(--recovery-high); font-weight: 600; margin-bottom: 12px;">✓ WHOOP Account Connected</p>
+                        <button class="btn-secondary" onclick="disconnectWHOOP()" style="width: 100%;">Disconnect WHOOP</button>
+                    </div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0;">
+
+                <div>
+                    <h3 style="color: var(--accent); margin-bottom: 12px; font-size: 16px;">Workout Adjustment Thresholds</h3>
+                    <div class="input-group" style="margin-bottom: 12px;">
+                        <label class="input-label">Full Intensity (Recovery Score ≥)</label>
+                        <input type="number" id="thresholdFull" value="70" min="0" max="100" style="width: 100%; padding: 10px;">
+                        <span style="font-size: 11px; color: #888; margin-top: 4px;">Run full workout when recovery is at or above this %</span>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 12px;">
+                        <label class="input-label">Light Intensity (Recovery Score ≥)</label>
+                        <input type="number" id="thresholdLight" value="50" min="0" max="100" style="width: 100%; padding: 10px;">
+                        <span style="font-size: 11px; color: #888; margin-top: 4px;">Run light workout below full threshold</span>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 12px;">
+                        <label class="input-label">Minimum Sleep Alert (hours)</label>
+                        <input type="number" id="minSleepAlert" value="6" min="0" max="12" step="0.5" style="width: 100%; padding: 10px;">
+                        <span style="font-size: 11px; color: #888; margin-top: 4px;">Alert if sleep is below this amount</span>
+                    </div>
+                    <button class="btn" onclick="saveSettings()" style="width: 100%;">Save Settings</button>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0;">
+
+                <div>
+                    <h3 style="color: var(--accent); margin-bottom: 12px; font-size: 16px;">Data Management</h3>
+                    <button class="btn-secondary" onclick="exportData()" style="width: 100%; margin-bottom: 12px;">📥 Export All Data</button>
+                    <button class="btn-danger" onclick="clearAllData()" style="width: 100%;">🗑️ Clear All Data</button>
+                    <p style="font-size: 12px; color: #888; margin-top: 12px;">⚠️ This will delete all logged workouts and weight history. Cannot be undone.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workout Modal -->
+    <div class="modal" id="workoutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle">Workout</span>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="adjustmentNote" style="background: rgba(255, 255, 0, 0.05); border: 1px solid var(--border); padding: 12px; border-radius: 8px; margin-bottom: 16px; display: none;">
+                    <div style="font-size: 13px; color: #aaa; margin-bottom: 8px;" id="adjustmentNoteText"></div>
+                </div>
+                <div id="modalExercises"></div>
+                <div class="weight-input-section">
+                    <div class="input-label" style="margin-bottom: 12px;">📊 Log Weight Today</div>
+                    <div class="weight-input-row">
+                        <div class="input-group">
+                            <label class="input-label">Weight (lbs)</label>
+                            <input type="number" id="weightInput" placeholder="218" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Date</label>
+                            <input type="date" id="dateInput">
+                        </div>
+                    </div>
+                    <button class="btn" onclick="saveWeight()" style="width: 100%;">Save Weight</button>
+                </div>
+                <button class="btn-secondary" onclick="closeModal()" style="width: 100%;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============= CONFIG =============
+        const API_BASE = '/api';
+        const WHOOP_CLIENT_ID = 'YOUR_WHOOP_CLIENT_ID'; // Will be injected from environment
+        const WHOOP_REDIRECT_URI = `${window.location.origin}/api/whoop`;
+
+        // ============= THRESHOLDS (Configurable) =============
+        let config = {
+            thresholdFull: 70,      // Recovery >= 70% → Full intensity
+            thresholdLight: 50,     // Recovery >= 50% → Light workout
+            minSleepAlert: 6        // Alert if sleep < 6 hours
+        };
+
+        // ============= DATA STRUCTURE =============
+        const workoutPlan = {
+            monday: {
+                name: 'Monday',
+                type: 'arm',
+                label: 'Mass Arm Day',
+                meals: [
+                    { time: '7:30 AM', meal: 'Breakfast (Post-cardio)' },
+                    { time: '12:00 PM', meal: 'Walking Lunch' },
+                    { time: '6:45 PM', meal: 'Dinner (Post-gym)' }
+                ],
+                exercises: [
+                    { name: 'Barbell Cheat Curls', sets: 4, reps: '8-10', weight: '' },
+                    { name: 'Dumbbell Hammer Curls', sets: 4, reps: '8-10', weight: '' },
+                    { name: 'DB Concentration Curls', sets: 4, reps: '10', weight: '' },
+                    { name: 'Barbell Flat Skull Crushers', sets: 4, reps: '8-10', weight: '' },
+                    { name: 'CG Bench Press', sets: 4, reps: '8-10', weight: '' },
+                    { name: 'Overhead Rope Extensions', sets: 4, reps: '10', weight: '' }
+                ],
+                fullExercises: 6,
+                lightExercises: 4
+            },
+            tuesday: {
+                name: 'Tuesday',
+                type: 'strength',
+                label: 'Leg Day',
+                meals: [
+                    { time: '7:30 AM', meal: 'Breakfast (Post-cardio)' },
+                    { time: '12:00 PM', meal: 'Walking Lunch' }
+                ],
+                exercises: [
+                    { name: 'Leg Extensions', sets: 4, reps: '15', weight: '' },
+                    { name: 'Front Squats', sets: 5, reps: '10-12', weight: '' },
+                    { name: 'Single Leg Press', sets: 4, reps: '15 (each)', weight: '' },
+                    { name: '3-Position Calf Raises', sets: 4, reps: '30 (10/10/10)', weight: '' }
+                ],
+                fullExercises: 4,
+                lightExercises: 2
+            },
+            wednesday: {
+                name: 'Wednesday',
+                type: 'strength',
+                label: 'Chest Day',
+                meals: [
+                    { time: '7:30 AM', meal: 'Breakfast' },
+                    { time: '12:00 PM', meal: 'Walking Lunch' }
+                ],
+                exercises: [
+                    { name: 'Incline Barbell Bench Press', sets: 6, reps: '8-12', weight: '' },
+                    { name: 'Dumbbell Flat Bench', sets: 4, reps: '8-12', weight: '' },
+                    { name: 'Cable Chest Press', sets: 4, reps: '15-20', weight: '' },
+                    { name: 'Incline Upper Chest DB Flies', sets: 4, reps: '12-15', weight: '' }
+                ],
+                fullExercises: 4,
+                lightExercises: 2
+            },
+            thursday: {
+                name: 'Thursday',
+                type: 'strength',
+                label: 'Back Day',
+                meals: [
+                    { time: '7:30 AM', meal: 'Breakfast (Post-cardio)' },
+                    { time: '12:00 PM', meal: 'Walking Lunch' }
+                ],
+                exercises: [
+                    { name: 'Wide Grip Lat Pull Downs', sets: 4, reps: '12', weight: '' },
+                    { name: 'Incline Dumbbell Low Rows', sets: 4, reps: '12-15', weight: '' },
+                    { name: 'RG Hammer Strength Row', sets: 5, reps: '12', weight: '' },
+                    { name: 'DB Lat Pullover', sets: 4, reps: '12-15', weight: '' }
+                ],
+                fullExercises: 4,
+                lightExercises: 2
+            },
+            friday: {
+                name: 'Friday',
+                type: 'arm',
+                label: 'High Volume Arm Day',
+                meals: [
+                    { time: '7:30 AM', meal: 'Breakfast (Post-cardio)' },
+                    { time: '12:00 PM', meal: 'Walking Lunch' },
+                    { time: '6:45 PM', meal: 'Dinner (Post-gym)' }
+                ],
+                exercises: [
+                    { name: 'Rope Cable Curls', sets: 4, reps: '15-20', weight: '' },
+                    { name: 'DB Preacher Curls', sets: 4, reps: '15 (each)', weight: '' },
+                    { name: 'EZ Bar Drag Curls', sets: 4, reps: '12-15', weight: '' },
+                    { name: 'Reverse Grip Overhead Cable Exts', sets: 4, reps: '15-20', weight: '' },
+                    { name: 'Bent-Over EZ Bar Kickbacks', sets: 4, reps: '15-20', weight: '' },
+                    { name: 'Hammer Grip Triceps Exts', sets: 4, reps: '15', weight: '' }
+                ],
+                fullExercises: 6,
+                lightExercises: 4
+            },
+            saturday: {
+                name: 'Saturday',
+                type: 'strength',
+                label: 'Shoulder Day',
+                meals: [
+                    { time: '7:30 AM', meal: 'Breakfast (Post-hike)' },
+                    { time: '12:00 PM', meal: 'Weekend Lunch' }
+                ],
+                exercises: [
+                    { name: 'Lateral Raise Rack Run', sets: 9, reps: '10', weight: '' },
+                    { name: 'Smith Machine Eccentric Shoulder Press', sets: 4, reps: '8', weight: '' },
+                    { name: 'Plate Front Raises', sets: 4, reps: '15-20', weight: '' },
+                    { name: 'Bent Over DB Rear Delt Flies', sets: 4, reps: '15-20', weight: '' }
+                ],
+                fullExercises: 4,
+                lightExercises: 2
+            },
+            sunday: {
+                name: 'Sunday',
+                type: 'recovery',
+                label: 'Rest & Recovery',
+                meals: [
+                    { time: '8:00 AM', meal: 'Breakfast (Post-yoga)' },
+                    { time: '12:00 PM', meal: 'Weekend Lunch' }
+                ],
+                exercises: [
+                    { name: 'Light Yoga/Mobility Work', sets: 1, reps: '45-60 min', weight: '—' },
+                    { name: 'Meal Prep', sets: 1, reps: '—', weight: '—' }
+                ],
+                fullExercises: 2,
+                lightExercises: 2
+            }
+        };
+
+        // ============= STATE =============
+        let currentWeek = 0;
+        let currentDay = null;
+        let whoopToken = localStorage.getItem('whoopToken');
+        let whoopData = JSON.parse(localStorage.getItem('whoopData')) || {
+            recovery: 0,
+            sleep: 0,
+            strain: 0,
+            steps: 0,
+            hrv: 0,
+            lastFetch: null
+        };
+        let weightHistory = JSON.parse(localStorage.getItem('weightHistory')) || [
+            { date: new Date().toISOString().split('T')[0], weight: 218 }
+        ];
+        let workoutLogs = JSON.parse(localStorage.getItem('workoutLogs')) || {};
+        let recoveryHistory = JSON.parse(localStorage.getItem('recoveryHistory')) || [];
+
+        // Load config
+        const savedConfig = JSON.parse(localStorage.getItem('config'));
+        if (savedConfig) config = { ...config, ...savedConfig };
+
+        // ============= INITIALIZATION =============
+        document.addEventListener('DOMContentLoaded', async () => {
+            const today = new Date();
+            document.getElementById('dateInput').valueAsDate = today;
+
+            loadConfig();
+            updateWeightDisplay();
+            renderCalendar();
+            initCharts();
+
+            // Load threshold inputs
+            document.getElementById('thresholdFull').value = config.thresholdFull;
+            document.getElementById('thresholdLight').value = config.thresholdLight;
+            document.getElementById('minSleepAlert').value = config.minSleepAlert;
+
+            // Check for OAuth callback
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+                await handleWHOOPCallback(code);
+            }
+
+            // Check if WHOOP is connected
+            if (whoopToken) {
+                updateWHOOPUI();
+                await syncWHOOPData();
+            } else {
+                updateWHOOPUI();
+            }
+
+            // Auto-sync every 15 minutes
+            setInterval(() => {
+                if (whoopToken) syncWHOOPData();
+            }, 15 * 60 * 1000);
+        });
+
+        // ============= WHOOP AUTHENTICATION =============
+        function authenticateWHOOP() {
+            const authUrl = `https://accounts.whoop.com/oauth/oauth2/auth?` +
+                `client_id=${WHOOP_CLIENT_ID}` +
+                `&response_type=code` +
+                `&scope=read:cycles:heart_rate` +
+                `&redirect_uri=${encodeURIComponent(WHOOP_REDIRECT_URI)}`;
+
+            window.location.href = authUrl;
+        }
+
+        async function handleWHOOPCallback(code) {
+            try {
+                const response = await fetch(`${API_BASE}/whoop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    whoopToken = data.accessToken;
+                    localStorage.setItem('whoopToken', whoopToken);
+                    updateWHOOPUI();
+                    await syncWHOOPData();
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            } catch (error) {
+                console.error('WHOOP auth error:', error);
+                showAlert('Failed to connect WHOOP. Please try again.', 'error');
+            }
+        }
+
+        function disconnectWHOOP() {
+            if (confirm('Disconnect your WHOOP account? You can reconnect anytime.')) {
+                whoopToken = null;
+                localStorage.removeItem('whoopToken');
+                updateWHOOPUI();
+                renderCalendar();
+            }
+        }
+
+        // ============= WHOOP DATA SYNC =============
+        async function syncWHOOPData() {
+            if (!whoopToken) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/whoop?token=${whoopToken}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    whoopData = {
+                        recovery: data.recovery || 0,
+                        sleep: data.sleep || 0,
+                        strain: data.strain || 0,
+                        steps: data.steps || 0,
+                        hrv: data.hrv || 0,
+                        lastFetch: new Date().toISOString()
+                    };
+
+                    // Track recovery history for trends
+                    recoveryHistory.push({
+                        date: new Date().toISOString().split('T')[0],
+                        recovery: whoopData.recovery,
+                        sleep: whoopData.sleep,
+                        strain: whoopData.strain
+                    });
+
+                    // Keep only last 30 days
+                    if (recoveryHistory.length > 30) {
+                        recoveryHistory = recoveryHistory.slice(-30);
+                    }
+
+                    localStorage.setItem('whoopData', JSON.stringify(whoopData));
+                    localStorage.setItem('recoveryHistory', JSON.stringify(recoveryHistory));
+
+                    updateWHOOPDisplay();
+                    updateHeaderMetrics();
+                    renderCalendar();
+                    checkAlerts();
+                }
+            } catch (error) {
+                console.error('WHOOP sync error:', error);
+            }
+        }
+
+        // ============= WHOOP UI UPDATES =============
+        function updateWHOOPUI() {
+            const statusEl = document.getElementById('whoopStatus');
+            const authDiv = document.getElementById('whoopAuth');
+            const connectedDiv = document.getElementById('whoopConnected');
+
+            if (whoopToken) {
+                statusEl.className = 'whoop-status connected';
+                statusEl.innerHTML = '● Connected to WHOOP';
+                authDiv.style.display = 'none';
+                connectedDiv.style.display = 'block';
+            } else {
+                statusEl.className = 'whoop-status disconnected';
+                statusEl.innerHTML = '● Not Connected';
+                authDiv.style.display = 'flex';
+                connectedDiv.style.display = 'none';
+            }
+        }
+
+        function updateHeaderMetrics() {
+            // Recovery
+            const recoveryScore = whoopData.recovery || 0;
+            const recoveryEl = document.getElementById('recoveryScore');
+            const recoveryFill = document.getElementById('recoveryFill');
+
+            recoveryEl.textContent = `${recoveryScore}%`;
+            recoveryFill.style.width = `${recoveryScore}%`;
+
+            if (recoveryScore >= 70) {
+                recoveryFill.style.background = 'var(--recovery-high)';
+            } else if (recoveryScore >= 50) {
+                recoveryFill.style.background = 'var(--recovery-good)';
+            } else if (recoveryScore >= 30) {
+                recoveryFill.style.background = 'var(--recovery-fair)';
+            } else {
+                recoveryFill.style.background = 'var(--recovery-poor)';
+            }
+
+            // Sleep
+            document.getElementById('sleepDuration').textContent = (whoopData.sleep || 0).toFixed(1);
+
+            // Strain
+            const strain = (whoopData.strain || 0).toFixed(1);
+            document.getElementById('strainLevel').textContent = strain;
+            const strainStatus = document.getElementById('strainStatus');
+            if (strain > 18) {
+                strainStatus.className = 'metric-status status-poor';
+                strainStatus.textContent = 'High';
+            } else if (strain > 12) {
+                strainStatus.className = 'metric-status status-fair';
+                strainStatus.textContent = 'Moderate';
+            } else {
+                strainStatus.className = 'metric-status status-good';
+                strainStatus.textContent = 'Low';
+            }
+
+            // Steps
+            document.getElementById('stepCount').textContent = whoopData.steps || 0;
+
+            // HRV
+            document.getElementById('hrvValue').textContent = Math.round(whoopData.hrv || 0);
+        }
+
+        function updateWHOOPDisplay() {
+            const recovery = whoopData.recovery || 0;
+            const sleep = whoopData.sleep || 0;
+            const strain = whoopData.strain || 0;
+            const steps = whoopData.steps || 0;
+            const hrv = whoopData.hrv || 0;
+
+            document.getElementById('whoopRecovery').textContent = `${recovery}%`;
+            document.getElementById('whoopRecoveryFill').style.width = `${recovery}%`;
+
+            if (recovery >= 70) {
+                document.getElementById('whoopRecoveryFill').style.background = 'var(--recovery-high)';
+                document.getElementById('recoveryTrend').textContent = '↑ Excellent recovery';
+            } else if (recovery >= 50) {
+                document.getElementById('whoopRecoveryFill').style.background = 'var(--recovery-good)';
+                document.getElementById('recoveryTrend').textContent = '→ Good recovery';
+            } else if (recovery >= 30) {
+                document.getElementById('whoopRecoveryFill').style.background = 'var(--recovery-fair)';
+                document.getElementById('recoveryTrend').textContent = '↓ Fair recovery';
+            } else {
+                document.getElementById('whoopRecoveryFill').style.background = 'var(--recovery-poor)';
+                document.getElementById('recoveryTrend').textContent = '↓↓ Poor recovery';
+            }
+
+            document.getElementById('whoopSleep').textContent = sleep.toFixed(1);
+            document.getElementById('whoopStrain').textContent = strain.toFixed(1);
+
+            if (strain > 18) {
+                document.getElementById('strainRecommendation').textContent = 'High - Consider rest';
+            } else if (strain > 12) {
+                document.getElementById('strainRecommendation').textContent = 'Moderate';
+            } else {
+                document.getElementById('strainRecommendation').textContent = 'Low - Push hard';
+            }
+
+            document.getElementById('whoopSteps').textContent = steps;
+            document.getElementById('whoopHRV').textContent = Math.round(hrv);
+
+            // Last updated
+            if (whoopData.lastFetch) {
+                const lastDate = new Date(whoopData.lastFetch);
+                const now = new Date();
+                const diff = Math.round((now - lastDate) / 60000); // minutes
+                if (diff < 1) {
+                    document.getElementById('lastUpdated').textContent = 'Just now';
+                } else if (diff < 60) {
+                    document.getElementById('lastUpdated').textContent = `${diff}m ago`;
+                } else {
+                    document.getElementById('lastUpdated').textContent = lastDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+        }
+
+        // ============= ALERT SYSTEM =============
+        function checkAlerts() {
+            const banner = document.getElementById('alertBanner');
+            let alert = null;
+
+            if (whoopData.sleep < config.minSleepAlert) {
+                alert = {
+                    text: `⚠️ Low sleep detected (${whoopData.sleep.toFixed(1)} hrs). Consider lighter workout today.`,
+                    type: 'warning'
+                };
+            } else if (whoopData.recovery < 30) {
+                alert = {
+                    text: `⚠️ Recovery below 30%. Recommend rest day or very light activity.`,
+                    type: 'error'
+                };
+            } else if (whoopData.strain > 20) {
+                alert = {
+                    text: `⚠️ High strain (${whoopData.strain.toFixed(1)}). Recovery day recommended tomorrow.`,
+                    type: 'warning'
+                };
+            }
+
+            if (alert) {
+                banner.textContent = alert.text;
+                banner.className = `alert-banner show ${alert.type === 'warning' ? 'warning' : ''}`;
+            } else {
+                banner.className = 'alert-banner';
+            }
+        }
+
+        // ============= WORKOUT ADJUSTMENT LOGIC =============
+        function getWorkoutAdjustment(recovery, sleep, strain) {
+            // Determine intensity level based on recovery
+            let intensity = 'full';
+            let reason = '';
+
+            if (sleep < config.minSleepAlert) {
+                intensity = 'light';
+                reason = `Sleep was low (${sleep.toFixed(1)}hrs) - light workout recommended`;
+            } else if (recovery >= config.thresholdFull) {
+                intensity = 'full';
+                reason = `Recovery ${recovery}% - Ready for full intensity`;
+            } else if (recovery >= config.thresholdLight) {
+                intensity = 'modified';
+                reason = `Recovery ${recovery}% - Modify with reduced volume`;
+            } else {
+                intensity = 'recovery';
+                reason = `Recovery ${recovery}% - Light activity recommended`;
+            }
+
+            return { intensity, reason };
+        }
+
+        function getAdjustedExercises(dayKey, intensity) {
+            const day = workoutPlan[dayKey];
+            if (intensity === 'full') {
+                return day.exercises;
+            } else if (intensity === 'modified') {
+                // Remove last 2 exercises for modified workout
+                return day.exercises.slice(0, day.fullExercises - 2);
+            } else if (intensity === 'light') {
+                // Keep only first 2-3 exercises for light
+                return day.exercises.slice(0, Math.min(3, day.lightExercises));
+            } else {
+                // Recovery day - just stretching
+                return [{ name: 'Light Yoga/Stretching', sets: 1, reps: '45 min', weight: '—' }];
+            }
+        }
+
+        // ============= CALENDAR =============
+        function renderCalendar() {
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            days.forEach(dayKey => {
+                const day = workoutPlan[dayKey];
+                const dayNumber = new Date(getDateForDay(dayKey)).getDate();
+                const workoutKey = `${dayKey}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+                const log = workoutLogs[workoutKey];
+                const isCompleted = log && log.completed;
+
+                // Get recovery for this day (from history if available, or current)
+                const dayDate = getDateForDay(dayKey).toISOString().split('T')[0];
+                const dayRecoveryData = recoveryHistory.find(r => r.date === dayDate);
+                const recovery = dayRecoveryData ? dayRecoveryData.recovery : whoopData.recovery;
+
+                // Determine adjustment
+                const adjustment = getWorkoutAdjustment(recovery, whoopData.sleep, whoopData.strain);
+                const adjustedExercises = getAdjustedExercises(dayKey, adjustment.intensity);
+
+                const card = document.createElement('div');
+                card.className = `day-card ${isCompleted ? 'completed' : ''}`;
+                card.onclick = () => openWorkout(dayKey);
+
+                // Color bar based on recovery
+                let barColor = 'var(--border)';
+                if (recovery >= 70) barColor = 'var(--recovery-high)';
+                else if (recovery >= 50) barColor = 'var(--recovery-good)';
+                else if (recovery >= 30) barColor = 'var(--recovery-fair)';
+                else barColor = 'var(--recovery-poor)';
+
+                let adjustmentBadgeClass = `adjustment-${adjustment.intensity}`;
+
+                card.innerHTML = `
+                    <div class="day-recovery-bar">
+                        <div class="day-recovery-fill" style="width: ${recovery}%; background: ${barColor};"></div>
+                    </div>
+
+                    <div class="day-header">
+                        <div>
+                            <div class="day-name">${day.name}</div>
+                            <div class="day-date">${dayNumber} ${new Date().toLocaleString('default', { month: 'short' })}</div>
+                        </div>
+                        ${isCompleted ? '<div class="completion-badge">✓</div>' : ''}
+                    </div>
+
+                    <div class="adjustment-badge ${adjustmentBadgeClass}">${adjustment.intensity.replace('_', ' ')}</div>
+                    <div class="workout-type ${day.type}">${day.label}</div>
+
+                    <div class="meals">
+                        ${day.meals.slice(0, 2).map(m => `
+                            <div class="meal-item">
+                                <span>${m.meal}</span>
+                                <span class="meal-time">${m.time}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="exercises-list">
+                        ${adjustedExercises.slice(0, 3).map(ex => `
+                            <div style="font-size: 12px; color: #aaa; margin: 4px 0;">
+                                <strong>${ex.name}</strong> • ${ex.sets}x${ex.reps}
+                            </div>
+                        `).join('')}
+                        ${adjustedExercises.length > 3 ? `<div style="font-size: 11px; color: #666; margin-top: 6px;">+ ${adjustedExercises.length - 3} more</div>` : ''}
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        function getDateForDay(dayKey) {
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            const today = new Date();
+            const currentDay = today.getDay();
+            const distance = days.indexOf(dayKey) - (currentDay - 1);
+            return new Date(today.getTime() + distance * 24 * 60 * 60 * 1000);
+        }
+
+        // ============= WORKOUT MODAL =============
+        function openWorkout(dayKey) {
+            currentDay = dayKey;
+            const day = workoutPlan[dayKey];
+
+            // Get adjustment info
+            const adjustment = getWorkoutAdjustment(whoopData.recovery, whoopData.sleep, whoopData.strain);
+            const adjustedExercises = getAdjustedExercises(dayKey, adjustment.intensity);
+
+            document.getElementById('modalTitle').textContent = `${day.name} - ${day.label}`;
+
+            // Show adjustment note if not full intensity
+            const noteEl = document.getElementById('adjustmentNote');
+            const noteTextEl = document.getElementById('adjustmentNoteText');
+            if (adjustment.intensity !== 'full') {
+                noteEl.style.display = 'block';
+                noteTextEl.textContent = `📊 ${adjustment.reason}. Showing ${adjustment.intensity} workout.`;
+            } else {
+                noteEl.style.display = 'none';
+            }
+
+            const exercisesHtml = adjustedExercises.map((ex, idx) => `
+                <div class="exercise-item" style="border-left: 3px solid ${day.type === 'arm' ? 'var(--accent)' : 'var(--success)'};">
+                    <div class="exercise-name">${ex.name}</div>
+                    <div class="exercise-inputs">
+                        <div class="input-group">
+                            <label class="input-label">Weight (lbs)</label>
+                            <input type="number" placeholder="Weight" step="2.5" class="exercise-weight" data-index="${idx}">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">Your Reps</label>
+                            <input type="text" placeholder="${ex.reps}" class="exercise-reps" data-index="${idx}">
+                        </div>
+                        <div class="input-group" style="grid-column: 1/-1;">
+                            <label class="input-label">Notes</label>
+                            <textarea class="exercise-notes" data-index="${idx}" placeholder="Form notes, difficulty, etc."></textarea>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('modalExercises').innerHTML = exercisesHtml;
+            document.getElementById('workoutModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('workoutModal').classList.remove('active');
+            saveWorkoutLog();
+        }
+
+        function saveWorkoutLog() {
+            if (!currentDay) return;
+            const workoutKey = `${currentDay}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+            const exercises = [];
+
+            document.querySelectorAll('.exercise-weight').forEach(input => {
+                const idx = input.dataset.index;
+                exercises.push({
+                    weight: input.value,
+                    reps: document.querySelectorAll('.exercise-reps')[idx].value,
+                    notes: document.querySelectorAll('.exercise-notes')[idx].value
+                });
+            });
+
+            workoutLogs[workoutKey] = { completed: true, exercises, timestamp: new Date().toISOString() };
+            localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
+            renderCalendar();
+        }
+
+        // ============= WEIGHT TRACKING =============
+        function saveWeight() {
+            const weight = parseFloat(document.getElementById('weightInput').value);
+            const date = document.getElementById('dateInput').value;
+
+            if (!weight || !date) {
+                alert('Please enter weight and date');
+                return;
+            }
+
+            const existing = weightHistory.findIndex(w => w.date === date);
+            if (existing >= 0) {
+                weightHistory[existing].weight = weight;
+            } else {
+                weightHistory.push({ date, weight });
+                weightHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+            }
+
+            localStorage.setItem('weightHistory', JSON.stringify(weightHistory));
+            updateWeightDisplay();
+            closeModal();
+
+            // Update chart
+            if (typeof weightChart !== 'undefined') {
+                weightChart.destroy();
+            }
+            initCharts();
+        }
+
+        function updateWeightDisplay() {
+            const latest = weightHistory[weightHistory.length - 1].weight;
+            const progress = (218 - latest).toFixed(1);
+            document.getElementById('currentWeight').textContent = latest.toFixed(1);
+            document.getElementById('startWeight').textContent = '218';
+
+            if (weightHistory.length > 1) {
+                const lowestWeight = Math.min(...weightHistory.map(w => w.weight));
+                const highestWeight = Math.max(...weightHistory.map(w => w.weight));
+                document.getElementById('lowestWeight').textContent = lowestWeight.toFixed(1);
+                document.getElementById('highestWeight').textContent = highestWeight.toFixed(1);
+                document.getElementById('lowestChange').textContent = `${(218 - lowestWeight).toFixed(1)} lbs down`;
+                document.getElementById('lowestChange').className = 'stat-change positive';
+                document.getElementById('highestChange').textContent = `${(highestWeight - 200).toFixed(1)} lbs from goal`;
+                document.getElementById('highestChange').className = 'stat-change negative';
+            }
+        }
+
+        // ============= CHARTS =============
+        let weightChart, recoveryVsWorkoutsChart, trendChart;
+
+        function initCharts() {
+            // Weight Progress Chart
+            const weightCtx = document.getElementById('weightChart');
+            if (weightCtx) {
+                weightChart = new Chart(weightCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: weightHistory.map(w => new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                        datasets: [{
+                            label: 'Weight (lbs)',
+                            data: weightHistory.map(w => w.weight),
+                            borderColor: '#FFFF00',
+                            backgroundColor: 'rgba(255, 255, 0, 0.05)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#FFFF00',
+                            pointBorderColor: '#FFD700',
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                min: 195,
+                                max: 225,
+                                grid: { color: 'rgba(255, 255, 0, 0.1)' },
+                                ticks: { color: '#888' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#888' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Recovery vs Workouts Chart
+            const recoveryCtx = document.getElementById('recoveryVsWorkoutsChart');
+            if (recoveryCtx) {
+                recoveryVsWorkoutsChart = new Chart(recoveryCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: recoveryHistory.slice(-7).map(r => new Date(r.date).toLocaleDateString('en-US', { weekday: 'short' })),
+                        datasets: [
+                            {
+                                label: 'Recovery %',
+                                data: recoveryHistory.slice(-7).map(r => r.recovery),
+                                borderColor: '#FFFF00',
+                                backgroundColor: 'rgba(255, 255, 0, 0.05)',
+                                borderWidth: 2,
+                                yAxisID: 'y',
+                                tension: 0.4,
+                                pointRadius: 4
+                            },
+                            {
+                                label: 'Sleep (hrs)',
+                                data: recoveryHistory.slice(-7).map(r => r.sleep),
+                                borderColor: '#93c5fd',
+                                backgroundColor: 'rgba(147, 197, 253, 0.05)',
+                                borderWidth: 2,
+                                yAxisID: 'y1',
+                                tension: 0.4,
+                                pointRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#888' } } },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                min: 0,
+                                max: 100,
+                                grid: { color: 'rgba(255, 255, 0, 0.1)' },
+                                ticks: { color: '#888' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                min: 0,
+                                max: 12,
+                                grid: { drawOnChartArea: false },
+                                ticks: { color: '#888' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#888' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Trends Chart
+            const trendCtx = document.getElementById('trendChart');
+            if (trendCtx) {
+                trendChart = new Chart(trendCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: recoveryHistory.slice(-7).map(r => new Date(r.date).toLocaleDateString('en-US', { weekday: 'short' })),
+                        datasets: [
+                            {
+                                label: 'Recovery %',
+                                data: recoveryHistory.slice(-7).map(r => r.recovery),
+                                backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                                borderColor: '#22c55e',
+                                borderWidth: 2,
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Strain',
+                                data: recoveryHistory.slice(-7).map(r => r.strain * 5), // Scale for visibility
+                                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                                borderColor: '#ef4444',
+                                borderWidth: 2,
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#888' } } },
+                        scales: {
+                            y: {
+                                grid: { color: 'rgba(255, 255, 0, 0.1)' },
+                                ticks: { color: '#888' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#888' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ============= TAB SWITCHING =============
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (tabName === 'progress' || tabName === 'whoop') {
+                setTimeout(() => {
+                    if (typeof weightChart !== 'undefined') weightChart.resize();
+                    if (typeof recoveryVsWorkoutsChart !== 'undefined') recoveryVsWorkoutsChart.resize();
+                    if (typeof trendChart !== 'undefined') trendChart.resize();
+                }, 100);
+            }
+        }
+
+        // ============= SETTINGS =============
+        function saveSettings() {
+            config = {
+                thresholdFull: parseInt(document.getElementById('thresholdFull').value),
+                thresholdLight: parseInt(document.getElementById('thresholdLight').value),
+                minSleepAlert: parseFloat(document.getElementById('minSleepAlert').value)
+            };
+            localStorage.setItem('config', JSON.stringify(config));
+            renderCalendar();
+            showAlert('Settings saved!', 'success');
+        }
+
+        function loadConfig() {
+            const saved = JSON.parse(localStorage.getItem('config'));
+            if (saved) config = { ...config, ...saved };
+        }
+
+        function exportData() {
+            const data = {
+                weightHistory,
+                workoutLogs,
+                whoopData,
+                recoveryHistory,
+                config,
+                exportDate: new Date().toISOString()
+            };
+
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `armageddon_export_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ This will permanently delete ALL data including workouts, weights, and settings. This cannot be undone. Continue?')) {
+                if (confirm('Really? Last chance!')) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            }
+        }
+
+        // ============= UTILITY =============
+        function showAlert(msg, type = 'info') {
+            const banner = document.getElementById('alertBanner');
+            banner.textContent = msg;
+            banner.className = `alert-banner show ${type === 'success' ? 'warning' : ''}`;
+            setTimeout(() => {
+                banner.className = 'alert-banner';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
