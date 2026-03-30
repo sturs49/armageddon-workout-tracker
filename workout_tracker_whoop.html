@@ -1073,8 +1073,6 @@
     <script>
         // ============= CONFIG =============
         const API_BASE = '/api';
-        const WHOOP_CLIENT_ID = 'YOUR_WHOOP_CLIENT_ID'; // Will be injected from environment
-        const WHOOP_REDIRECT_URI = `${window.location.origin}/api/whoop`;
 
         // ============= THRESHOLDS (Configurable) =============
         let config = {
@@ -1269,14 +1267,15 @@
         });
 
         // ============= WHOOP AUTHENTICATION =============
-        function authenticateWHOOP() {
-            const authUrl = `https://accounts.whoop.com/oauth/oauth2/auth?` +
-                `client_id=${WHOOP_CLIENT_ID}` +
-                `&response_type=code` +
-                `&scope=read:cycles:heart_rate` +
-                `&redirect_uri=${encodeURIComponent(WHOOP_REDIRECT_URI)}`;
-
-            window.location.href = authUrl;
+        async function authenticateWHOOP() {
+            try {
+                const response = await fetch(`${API_BASE}/whoop?action=auth-url`);
+                const data = await response.json();
+                window.location.href = data.url;
+            } catch (error) {
+                console.error('Failed to get auth URL:', error);
+                showAlert('Failed to start WHOOP connection. Please try again.', 'error');
+            }
         }
 
         async function handleWHOOPCallback(code) {

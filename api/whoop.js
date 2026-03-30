@@ -39,6 +39,17 @@ export default async function handler(req, res) {
     }
   }
 
+  // Return OAuth URL (so client ID stays server-side)
+  if (req.method === 'GET' && req.query.action === 'auth-url') {
+    return res.status(200).json({
+      url: `https://accounts.whoop.com/oauth/oauth2/auth?` +
+        `client_id=${clientId}` +
+        `&response_type=code` +
+        `&scope=read:cycles:heart_rate` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}`
+    });
+  }
+
   // Get WHOOP Data
   if (req.method === 'GET' && req.query.token) {
     try {
