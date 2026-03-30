@@ -250,11 +250,159 @@ Concrete next steps if exploring monetization:
 
 ---
 
+## Brand Strategy
+
+### Brand Name Options
+
+"ARMageddon" works for your personal arm-focused program but doesn't scale — it's too niche and hard to trademark. For a product that spans all workouts + nutrition + wearables, you need something broader.
+
+**Naming criteria:** Short (1-2 syllables ideal), easy to spell, available domain, conveys motion/progress/wholeness, works as both app name and brand.
+
+| Name | Vibe | Domain Availability | Why It Works |
+|------|------|-------------------|--------------|
+| **Vora** | Clean, modern, premium | vora.app likely available | Sounds like "voracious" — hunger for progress. Short, unique, memorable. Gender-neutral. |
+| **Tread** | Grounded, forward motion | tread.fit / treadapp.com | Implies steady progress, works across fitness types. Strong single syllable. |
+| **Reco** | Tech-forward, friendly | reco.fit / recoapp.com | Short for "recovery" — your core differentiator. Fun, modern, easy to say. |
+| **Caliber** | Premium, precise, data-driven | caliber.app (taken by competitor) | Perfect meaning but competitor exists. Could variant: Calibra, Kaliber. |
+| **Forge** | Strength, creation, transformation | forgefit.app / forge.health | "Forged in the gym." Strong imagery. Works for both lifting and holistic health. |
+| **Pulse** | Wearable-native, vital, alive | pulse.fit (likely taken) | Directly tied to wearable data (heart rate, HRV). Energetic. |
+| **Kinetic** | Scientific, movement, energy | kinetic.fit / kineticapp.com | Physics term for energy in motion. Smart, clean, memorable. |
+| **Steadí** | Consistency, balance, calm strength | steadi.app | Accented i is distinctive. Conveys the daily habit angle. |
+
+**Top 3 recommendation:** Vora, Forge, or Reco. All are short, unique, domain-friendly, and don't box you into one feature.
+
+### Brand Colors
+
+Based on market research, conversion data, and competitor analysis:
+
+**Current (ARMageddon):** Black + Yellow (#FFFF00) — High energy, aggressive, very masculine. Works for a personal lifting app but alienates broader audience (women, yoga, recovery-focused users).
+
+**What the data says:**
+- Red/orange dominate fitness apps (energy, urgency) — but that means everyone looks the same
+- Green is trending for health/wellness in 2026 (+20% trust scores with users under 35)
+- High contrast ratio (6:1+) matters more than specific color for conversions
+- Brand-consistent colors outperform trendy colors by 18% with repeat users
+
+**Recommended palette for a multi-user product:**
+
+| Role | Color | Hex | Rationale |
+|------|-------|-----|-----------|
+| Primary | Deep Black | #0A0A0A | Premium feel, lets data/metrics pop. Every wearable app uses dark mode. |
+| Accent | Electric Teal | #00E5C3 | Differentiates from red/orange fitness crowd AND yellow WHOOP. Signals tech + health. High contrast on dark. |
+| Secondary | Warm Coral | #FF6B6B | Energy, urgency. Use for CTAs, alerts, strain indicators. |
+| Success | Vibrant Green | #22C55E | Recovery, completion, positive metrics. Universal "good" signal. |
+| Warning | Amber | #F59E0B | Moderate states, attention needed. |
+| Text | Off-White | #F0F0F0 | Softer than pure white, easier on eyes in dark mode. |
+
+**Why teal as primary accent:** It's the "gap" color in fitness. WHOOP owns yellow/green. Oura owns white/silver. Strava owns orange. Apple Fitness owns neon rings. Teal is unclaimed, signals both tech sophistication and health/wellness, and tests well with both male and female audiences.
+
+**Transition plan:** Keep black+yellow for now as your personal build. When/if you go multi-user, rebrand with new palette — it's just CSS variable swaps.
+
+---
+
+## AI Workout Plan Generation
+
+### The Vision
+
+Instead of hardcoded workout plans, let users describe their goals and have AI generate personalized programming.
+
+### User Input Flow
+
+1. **Onboarding questionnaire:**
+   - Goal: Muscle gain / Fat loss / Strength / General fitness / Sport-specific
+   - Experience level: Beginner / Intermediate / Advanced
+   - Days available: 3-7 per week
+   - Equipment: Full gym / Home gym / Bodyweight only
+   - Injuries/limitations: Free text
+   - Time per session: 30 / 45 / 60 / 90 min
+   - Focus areas: Arms, chest, back, legs, shoulders, core (multi-select)
+
+2. **AI generates a full weekly program** via Claude API
+   - Exercise selection, sets, reps, rest periods
+   - Progressive overload built in (week-over-week progression)
+   - Deload weeks every 4-6 weeks
+   - Adapts based on recovery data (WHOOP/Oura integration)
+
+3. **Weekly auto-adjustment:**
+   - After each completed week, AI reviews logged weights/reps + recovery scores
+   - Suggests increases, deloads, or exercise swaps
+   - "Your bench press has stalled for 2 weeks — try paused reps or switch to dumbbell press"
+
+### Implementation Approach
+
+- **Phase 1 (personal):** Keep hardcoded plans, add ability to edit exercises per day
+- **Phase 2 (MVP):** Prompt Claude API with user inputs → generate JSON workout plan → render in app
+- **Phase 3 (product):** Fine-tuned prompts with exercise database, periodization templates, injury awareness
+- **Cost:** ~$0.02-0.05 per plan generation (one-time per week), negligible at scale
+
+### Competitive Edge
+
+Most "AI workout" apps just randomize from a database. Using an LLM means:
+- Natural language injury/preference handling ("bad left shoulder, can't overhead press")
+- Genuine periodization logic, not just randomization
+- Can explain *why* each exercise was chosen
+- Adapts to the specific equipment available
+
+---
+
+## Additional Product Optimization Ideas
+
+### For Personal Use → Product Transition
+
+1. **Onboarding Flow**
+   - First-time user experience: connect wearable → set goals → generate plan
+   - Skip-friendly (can use without wearable, manual entry works)
+   - Takes < 60 seconds
+
+2. **Multi-Wearable Architecture**
+   - Abstract wearable data behind a common interface: `{ recovery, sleep, strain, hrv, steps }`
+   - WHOOP adapter, Oura adapter, Apple Health adapter, manual adapter
+   - User connects whichever they have — app doesn't care about the source
+   - This is the real moat: being wearable-agnostic
+
+3. **Apple Health Integration (Free, No API Key)**
+   - iOS Web API can't access HealthKit directly, but a native wrapper (Capacitor/React Native) can
+   - Pulls: steps, heart rate, sleep, workouts, weight
+   - Covers users without WHOOP/Oura (massive market expansion)
+   - Consider this for the app store version
+
+4. **Offline-First Architecture**
+   - All data works offline, syncs when connected
+   - Critical for gym use (basements, poor signal)
+   - IndexedDB instead of localStorage (larger storage, better performance)
+   - Background sync API for deferred uploads
+
+5. **Push Notifications (PWA)**
+   - "Time to log your workout" reminders
+   - "Recovery is 85% — go hard today"
+   - "You haven't logged food since lunch"
+   - Requires HTTPS + service worker (already have both)
+
+6. **Social Proof / Waitlist Landing Page**
+   - Simple page: hero image, 3 feature bullets, email capture
+   - "Join the beta" — gauge interest before building payment infra
+   - Use Vercel + a simple form → Notion/Airtable for emails
+   - Share on Reddit (r/whoop, r/ouraring, r/fitness, r/bodybuilding)
+
+7. **Data Privacy as a Feature**
+   - "Your data stays on your device" is a genuine selling point
+   - Most fitness apps harvest and sell data
+   - Market the local-first architecture as a feature, not a limitation
+   - If/when you add cloud sync, make it opt-in and encrypted
+
+8. **Theming / White-Label Potential**
+   - CSS variables already power the theme — adding user-selectable themes is trivial
+   - Long-term: personal trainers could white-label it for their clients
+   - Trainer creates workout plan → sends to client's app → client logs and trainer sees progress
+
+---
+
 ## To Pick Up Tomorrow
 
 1. **Macro tracking + food photo AI** — biggest feature add
 2. **Daily composite score** — ties everything together
-3. **Progressive overload tracking** — the "gym bro" feature
+3. **Progressive overload tracking** — the gym bro feature
 4. **Oura Ring integration** — validate multi-wearable support (for GF + monetization)
-5. Test the WHOOP sync after a full night of sleep data
-6. Add to iPhone home screen and test PWA experience
+5. **Brand name decision** — pick a name, grab the domain
+6. Test the WHOOP sync after a full night of sleep data
+7. Add to iPhone home screen and test PWA experience
