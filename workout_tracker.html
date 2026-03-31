@@ -429,15 +429,6 @@
                 <div class="section-title">Settings</div>
 
                 <div class="setting-group">
-                    <h3>Workout Mode</h3>
-                    <div class="setting-row">
-                        <span class="setting-label">Use suggested plan (ARMageddon)</span>
-                        <div class="toggle on" id="toggleSuggested" onclick="toggleWorkoutMode()"></div>
-                    </div>
-                    <p style="font-size:11px;color:#666;margin-top:6px">Turn off to manually enter your own exercises each day</p>
-                </div>
-
-                <div class="setting-group">
                     <h3>Recovery Thresholds</h3>
                     <div class="setting-row">
                         <span class="setting-label">Full intensity (recovery >=)</span>
@@ -537,9 +528,48 @@
             <!-- Custom exercise input (hidden by default) -->
             <div id="customExerciseSection" style="display:none">
                 <div id="customExerciseList"></div>
-                <div style="display:flex;gap:8px;margin-top:8px">
-                    <input type="text" id="customExName" placeholder="Exercise name" style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-light);padding:8px 10px;border-radius:6px;font-size:13px;font-family:inherit">
-                    <button class="btn btn-sm" onclick="addCustomExercise()" style="width:auto;flex:none;padding:8px 14px">+ Add</button>
+                <div style="margin-top:10px">
+                    <label class="input-label" style="margin-bottom:6px;display:block">Add Exercise</label>
+                    <div style="display:flex;gap:8px;margin-bottom:6px">
+                        <select id="customExSelect" onchange="onExerciseSelect()" style="flex:1;background:var(--card-bg);border:1px solid var(--border);color:var(--text-light);padding:8px;border-radius:6px;font-size:13px;font-family:inherit">
+                            <option value="">— Pick common exercise —</option>
+                            <optgroup label="Chest">
+                                <option>Flat Bench Press</option><option>Incline Bench Press</option><option>Dumbbell Bench Press</option>
+                                <option>Incline DB Press</option><option>Cable Flies</option><option>Chest Press Machine</option>
+                                <option>Push Ups</option><option>Dips (Chest)</option>
+                            </optgroup>
+                            <optgroup label="Back">
+                                <option>Pull Ups</option><option>Lat Pulldown</option><option>Barbell Row</option>
+                                <option>Dumbbell Row</option><option>Cable Row</option><option>T-Bar Row</option>
+                                <option>Face Pulls</option><option>Deadlift</option>
+                            </optgroup>
+                            <optgroup label="Shoulders">
+                                <option>Overhead Press</option><option>Dumbbell Shoulder Press</option><option>Lateral Raises</option>
+                                <option>Front Raises</option><option>Rear Delt Flies</option><option>Arnold Press</option>
+                                <option>Shrugs</option><option>Upright Row</option>
+                            </optgroup>
+                            <optgroup label="Arms">
+                                <option>Barbell Curls</option><option>Dumbbell Curls</option><option>Hammer Curls</option>
+                                <option>Preacher Curls</option><option>Cable Curls</option><option>Concentration Curls</option>
+                                <option>Tricep Pushdowns</option><option>Skull Crushers</option><option>Overhead Tricep Extension</option>
+                                <option>Close Grip Bench</option><option>Dips (Triceps)</option>
+                            </optgroup>
+                            <optgroup label="Legs">
+                                <option>Barbell Squat</option><option>Front Squat</option><option>Leg Press</option>
+                                <option>Leg Extensions</option><option>Leg Curls</option><option>Romanian Deadlift</option>
+                                <option>Bulgarian Split Squat</option><option>Lunges</option><option>Calf Raises</option>
+                                <option>Hip Thrust</option><option>Goblet Squat</option>
+                            </optgroup>
+                            <optgroup label="Core">
+                                <option>Planks</option><option>Cable Crunches</option><option>Hanging Leg Raises</option>
+                                <option>Ab Wheel Rollout</option><option>Russian Twists</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:8px">
+                        <input type="text" id="customExName" placeholder="Or type your own..." style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-light);padding:8px 10px;border-radius:6px;font-size:13px;font-family:inherit">
+                        <button class="btn btn-sm" onclick="addCustomExercise()" style="width:auto;flex:none;padding:8px 14px">+ Add</button>
+                    </div>
                 </div>
             </div>
 
@@ -1110,6 +1140,15 @@
                 <textarea class="custom-notes" data-index="${i}" placeholder="Notes" style="margin-top:6px">${ex.notes||''}</textarea>
             </div>
         `).join('');
+    }
+
+    function onExerciseSelect() {
+        const select = document.getElementById('customExSelect');
+        if (select.value) {
+            document.getElementById('customExName').value = select.value;
+            addCustomExercise();
+            select.value = '';
+        }
     }
 
     function addCustomExercise() {
