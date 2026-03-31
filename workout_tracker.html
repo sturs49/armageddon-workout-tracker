@@ -239,7 +239,7 @@
             </div>
             <div class="goal-item">
                 <div class="goal-label">Weight</div>
-                <div class="goal-value" id="goalWeight">218</div>
+                <div class="goal-value" id="goalWeight">—</div>
                 <div class="goal-bar"><div class="goal-fill accent" id="goalWeightFill" style="width:0%"></div></div>
             </div>
         </div>
@@ -287,20 +287,20 @@
                 <div class="chart-container"><canvas id="weightChart"></canvas></div>
                 <div class="stats-grid">
                     <div class="stat-box">
-                        <div class="stat-value" id="startWeight">218</div>
+                        <div class="stat-value" id="startWeightDisplay">—</div>
                         <div class="stat-label">Start</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value" id="currentWeightStat">218</div>
+                        <div class="stat-value" id="currentWeightStat">—</div>
                         <div class="stat-label">Current</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value" id="lowestWeight">218</div>
+                        <div class="stat-value" id="lowestWeight">—</div>
                         <div class="stat-label">Lowest</div>
                         <div class="stat-change positive" id="lowestChange"></div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value">200</div>
+                        <div class="stat-value" id="goalWeightDisplay">—</div>
                         <div class="stat-label">Goal</div>
                     </div>
                 </div>
@@ -446,6 +446,10 @@
                         <input type="number" class="setting-input" id="goalSleepTarget" value="7" step="0.5">
                     </div>
                     <div class="setting-row">
+                        <span class="setting-label">Starting weight (lbs)</span>
+                        <input type="number" class="setting-input" id="startWeightTarget" value="218">
+                    </div>
+                    <div class="setting-row">
                         <span class="setting-label">Goal weight (lbs)</span>
                         <input type="number" class="setting-input" id="goalWeightTarget" value="200">
                     </div>
@@ -505,7 +509,7 @@
             <div class="weight-section">
                 <div class="input-label" style="margin-bottom:8px">Log Weight</div>
                 <div class="weight-row">
-                    <input type="number" id="weightInput" placeholder="218" step="0.1">
+                    <input type="number" id="weightInput" placeholder="Weight" step="0.1">
                     <input type="date" id="dateInput">
                 </div>
                 <button class="btn btn-sm" onclick="saveWeight()">Save Weight</button>
@@ -538,6 +542,7 @@
         calGoal: 2200,
         protGoal: 150,
         sleepGoal: 7,
+        startWeight: 218,
         weightGoal: 200,
         useSuggested: true
     };
@@ -601,7 +606,7 @@
     let currentDay = null;
     let viewMonth = new Date().getMonth();
     let viewYear = new Date().getFullYear();
-    let weightHistory = JSON.parse(localStorage.getItem('weightHistory')) || [{date:new Date().toISOString().split('T')[0], weight:218}];
+    let weightHistory = JSON.parse(localStorage.getItem('weightHistory')) || [{date:new Date().toISOString().split('T')[0], weight:config.startWeight}];
     let workoutLogs = JSON.parse(localStorage.getItem('workoutLogs')) || {};
     let foodLogs = JSON.parse(localStorage.getItem('foodLogs')) || {};
     let dailyData = JSON.parse(localStorage.getItem('dailyData')) || {};
@@ -684,7 +689,7 @@
 
         // Weight
         document.getElementById('goalWeight').textContent = latest.toFixed(1);
-        const weightProgress = Math.max(0, Math.min(100, ((218 - latest) / (218 - config.weightGoal)) * 100));
+        const weightProgress = Math.max(0, Math.min(100, ((config.startWeight - latest) / (config.startWeight - config.weightGoal)) * 100));
         setGoalFill('goalWeightFill', weightProgress, 100);
     }
 
@@ -972,10 +977,12 @@
     function updateWeightStats() {
         const latest = weightHistory[weightHistory.length-1].weight;
         document.getElementById('currentWeightStat').textContent = latest.toFixed(1);
+        document.getElementById('startWeightDisplay').textContent = config.startWeight;
+        document.getElementById('goalWeightDisplay').textContent = config.weightGoal;
+        const low = Math.min(...weightHistory.map(w=>w.weight));
+        document.getElementById('lowestWeight').textContent = low.toFixed(1);
         if (weightHistory.length > 1) {
-            const low = Math.min(...weightHistory.map(w=>w.weight));
-            document.getElementById('lowestWeight').textContent = low.toFixed(1);
-            document.getElementById('lowestChange').textContent = (218-low).toFixed(1)+' lbs down';
+            document.getElementById('lowestChange').textContent = (config.startWeight-low).toFixed(1)+' lbs down';
         }
     }
 
@@ -1167,6 +1174,7 @@
         document.getElementById('goalCalTarget').value = config.calGoal;
         document.getElementById('goalProtTarget').value = config.protGoal;
         document.getElementById('goalSleepTarget').value = config.sleepGoal;
+        document.getElementById('startWeightTarget').value = config.startWeight;
         document.getElementById('goalWeightTarget').value = config.weightGoal;
         const toggle = document.getElementById('toggleSuggested');
         if (config.useSuggested) toggle.classList.add('on'); else toggle.classList.remove('on');
@@ -1180,6 +1188,7 @@
             calGoal: parseInt(document.getElementById('goalCalTarget').value),
             protGoal: parseInt(document.getElementById('goalProtTarget').value),
             sleepGoal: parseFloat(document.getElementById('goalSleepTarget').value),
+            startWeight: parseInt(document.getElementById('startWeightTarget').value),
             weightGoal: parseInt(document.getElementById('goalWeightTarget').value),
             useSuggested: config.useSuggested
         };
