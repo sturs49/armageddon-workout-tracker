@@ -709,8 +709,9 @@
     let dailyData = JSON.parse(localStorage.getItem('dailyData')) || {};
     let whoopData = JSON.parse(localStorage.getItem('whoopData')) || {recovery:0,sleep:0,strain:0,steps:0,hrv:0};
 
-    function today(){return new Date().toISOString().split('T')[0]}
-    function dayKey(date){return ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date(date).getDay()]}
+    function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+    function toLocalDateStr(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+    function dayKey(date){const parts=date.split('-');const d=new Date(+parts[0],+parts[1]-1,+parts[2]);return ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][d.getDay()]}
 
     // ===== WHOOP =====
     const API_BASE = '/api';
@@ -956,7 +957,7 @@
         days.forEach(dk => {
             const plan = defaultPlan[dk];
             const dateForDay = getDateForDay(dk);
-            const dateStr = dateForDay.toISOString().split('T')[0];
+            const dateStr = toLocalDateStr(dateForDay);
             const isToday = dateStr === todayDate;
             const wKey = `${dk}-${new Date().getFullYear()}-${new Date().getMonth()}`;
             const log = workoutLogs[wKey];
@@ -1017,7 +1018,7 @@
         setDayMode(mode);
 
         // Restore cardio
-        const dd = getDailyData(getDateForDay(dk).toISOString().split('T')[0]);
+        const dd = getDailyData(toLocalDateStr(getDateForDay(dk)));
         if (dd.cardio) {
             document.getElementById('cardioType').value = dd.cardio.type || '';
             document.getElementById('cardioDuration').value = dd.cardio.duration || '';
@@ -1057,7 +1058,7 @@
     }
 
     function saveCardio() {
-        const dateStr = getDateForDay(currentDay).toISOString().split('T')[0];
+        const dateStr = toLocalDateStr(getDateForDay(currentDay));
         const cardioType = document.getElementById('cardioType').value;
         const steps = parseInt(document.getElementById('cardioSteps').value) || 0;
         if (cardioType || steps) {
@@ -1528,10 +1529,15 @@
             let goalsHit = 0;
             if (log?.completed) goalsHit++;
             if (foods.length > 0) goalsHit++;
-            if ((dd.steps||0) >= config.stepGoal * 0.5) goalsHit++;
+            // Count recovery data or manual steps as third goal
+            const hasRecovery = recoveryHistory.some(r => r.date === ds);
+            const hasSteps = (dd.steps||0) > 0;
+            if (hasRecovery || hasSteps) goalsHit++;
 
             let cls = 'empty';
-            if (new Date(ds) <= new Date()) {
+            const dsDate = new Date(+ds.split('-')[0], +ds.split('-')[1]-1, +ds.split('-')[2]);
+            const nowDate = new Date(); nowDate.setHours(23,59,59);
+            if (dsDate <= nowDate) {
                 if (goalsHit >= 3) cls = 'green';
                 else if (goalsHit >= 2) cls = 'orange';
                 else if (goalsHit >= 1) cls = 'orange';
