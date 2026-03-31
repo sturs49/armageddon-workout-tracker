@@ -2,7 +2,7 @@
   "name": "reKova",
   "short_name": "reKova",
   "description": "Recovery-driven workout tracker with WHOOP integration and AI nutrition",
-  "start_url": "/workout_tracker_whoop.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

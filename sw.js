@@ -1,6 +1,7 @@
-const CACHE_NAME = 'rekova-v3';
+const CACHE_NAME = 'rekova-v4';
 const ASSETS_TO_CACHE = [
-  '/workout_tracker_whoop.html',
+  '/',
+  '/index.html',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

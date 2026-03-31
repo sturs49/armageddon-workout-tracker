@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   const clientId = process.env.WHOOP_CLIENT_ID;
   const clientSecret = process.env.WHOOP_CLIENT_SECRET;
   const redirectUri = process.env.REDIRECT_URI || `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/whoop`;
-  const appUrl = process.env.APP_URL || redirectUri.replace('/api/whoop', '/workout_tracker_whoop.html');
+  const appUrl = process.env.APP_URL || redirectUri.replace('/api/whoop', '/');
 
   const WHOOP_BASE = 'https://api.prod.whoop.com';
   const TOKEN_URL = `${WHOOP_BASE}/oauth/oauth2/token`;
