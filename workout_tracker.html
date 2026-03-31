@@ -317,37 +317,59 @@
         <div id="food-tab" class="tab-content hidden">
             <div class="progress-section">
                 <div class="section-title">Food Log</div>
-                <p style="color:#888;font-size:13px;margin-bottom:16px">Log what you eat throughout the day. Track meals and daily calories.</p>
+                <p style="color:#888;font-size:13px;margin-bottom:16px">Describe what you ate — AI estimates calories and macros automatically.</p>
 
-                <div style="display:flex;gap:8px;margin-bottom:12px">
-                    <select id="foodMealType" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text-light);padding:8px;border-radius:6px;font-size:13px">
+                <div style="display:flex;gap:8px;margin-bottom:10px">
+                    <select id="foodMealType" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text-light);padding:8px;border-radius:6px;font-size:13px;flex:none">
                         <option value="breakfast">Breakfast</option>
                         <option value="lunch">Lunch</option>
                         <option value="dinner">Dinner</option>
                         <option value="snack">Snack</option>
                     </select>
                 </div>
-                <div class="food-entry">
-                    <input type="text" id="foodInput" placeholder="e.g. 2 eggs, oatmeal, banana">
-                    <input type="number" id="foodCalories" placeholder="cal" style="width:70px;flex:none">
-                    <input type="number" id="foodProtein" placeholder="prot" style="width:60px;flex:none">
-                    <button class="btn btn-sm" onclick="addFoodEntry()" style="width:auto;flex:none;padding:8px 14px">+</button>
+                <div style="display:flex;gap:8px;margin-bottom:6px">
+                    <input type="text" id="foodInput" placeholder="e.g. 2 eggs, toast and bacon" style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-light);padding:10px 12px;border-radius:8px;font-size:14px;font-family:inherit">
+                    <button class="btn btn-sm" id="foodLogBtn" onclick="analyzeAndLogFood()" style="width:auto;flex:none;padding:10px 16px">Log</button>
+                </div>
+                <div id="foodAiLoading" style="display:none;text-align:center;padding:12px;color:#888;font-size:13px">
+                    <div style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,0,.3);border-top:2px solid var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px"></div>
+                    Analyzing with AI...
+                </div>
+
+                <!-- AI result preview (before confirm) -->
+                <div id="foodAiPreview" style="display:none;background:rgba(255,255,0,.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+                    <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">AI Estimate</div>
+                    <div id="foodAiItems"></div>
+                    <div id="foodAiTotal" style="display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-weight:700;font-size:13px"></div>
+                    <div style="display:flex;gap:8px;margin-top:10px">
+                        <button class="btn btn-sm" onclick="confirmFoodEntry()" style="flex:1">Confirm</button>
+                        <button class="btn btn-sm btn-secondary" onclick="cancelFoodPreview()" style="flex:1">Cancel</button>
+                    </div>
                 </div>
 
                 <div id="foodLogToday" class="food-list"></div>
 
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px">
+                <!-- Daily totals with macro goals -->
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:16px">
                     <div class="stat-box">
                         <div class="stat-value" id="totalCalories">0</div>
                         <div class="stat-label">Calories</div>
+                        <div style="font-size:10px;color:#555;margin-top:2px" id="calGoalLabel"></div>
                     </div>
                     <div class="stat-box">
                         <div class="stat-value" id="totalProtein">0g</div>
                         <div class="stat-label">Protein</div>
+                        <div style="font-size:10px;color:#555;margin-top:2px" id="protGoalLabel"></div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-value" id="totalMeals">0</div>
-                        <div class="stat-label">Meals</div>
+                        <div class="stat-value" id="totalCarbs">0g</div>
+                        <div class="stat-label">Carbs</div>
+                        <div style="font-size:10px;color:#555;margin-top:2px" id="carbGoalLabel"></div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalFat">0g</div>
+                        <div class="stat-label">Fat</div>
+                        <div style="font-size:10px;color:#555;margin-top:2px" id="fatGoalLabel"></div>
                     </div>
                 </div>
 
@@ -429,6 +451,26 @@
 
                 <div class="setting-group">
                     <h3>Daily Goals</h3>
+                    <div style="background:rgba(255,255,0,.03);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
+                        <p style="font-size:12px;color:#888;margin-bottom:8px">Let AI recommend your daily macros based on your stats and goals.</p>
+                        <div style="display:flex;gap:8px;margin-bottom:8px">
+                            <select id="aiActivityLevel" style="flex:1;background:var(--card-bg);border:1px solid var(--border);color:var(--text-light);padding:8px;border-radius:6px;font-size:12px">
+                                <option value="sedentary">Sedentary</option>
+                                <option value="lightly active">Lightly Active</option>
+                                <option value="moderately active" selected>Moderately Active</option>
+                                <option value="very active">Very Active</option>
+                                <option value="athlete">Athlete</option>
+                            </select>
+                            <select id="aiGoalType" style="flex:1;background:var(--card-bg);border:1px solid var(--border);color:var(--text-light);padding:8px;border-radius:6px;font-size:12px">
+                                <option value="lose fat, preserve muscle" selected>Fat Loss</option>
+                                <option value="build muscle">Build Muscle</option>
+                                <option value="recomp">Recomp</option>
+                                <option value="maintain">Maintain</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-sm" id="aiMacroBtn" onclick="getAIMacros()" style="width:100%">AI Suggest My Macros</button>
+                        <div id="aiMacroResult" style="display:none;margin-top:10px;font-size:12px;color:#aaa"></div>
+                    </div>
                     <div class="setting-row">
                         <span class="setting-label">Step goal</span>
                         <input type="number" class="setting-input" id="goalStepsTarget" value="10000">
@@ -440,6 +482,14 @@
                     <div class="setting-row">
                         <span class="setting-label">Protein goal (g)</span>
                         <input type="number" class="setting-input" id="goalProtTarget" value="150">
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">Carb goal (g)</span>
+                        <input type="number" class="setting-input" id="goalCarbTarget" value="250">
+                    </div>
+                    <div class="setting-row">
+                        <span class="setting-label">Fat goal (g)</span>
+                        <input type="number" class="setting-input" id="goalFatTarget" value="70">
                     </div>
                     <div class="setting-row">
                         <span class="setting-label">Sleep goal (hrs)</span>
@@ -476,7 +526,22 @@
 
             <div id="adjustmentNote" style="background:rgba(255,255,0,.05);border:1px solid var(--border);padding:10px;border-radius:8px;margin-bottom:12px;display:none;font-size:12px;color:#aaa"></div>
 
+            <!-- Per-day workout mode toggle -->
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+                <button class="btn btn-sm" id="modeArmageddon" onclick="setDayMode('suggested')" style="flex:1;font-size:11px">ARMageddon Plan</button>
+                <button class="btn btn-sm btn-secondary" id="modeCustom" onclick="setDayMode('custom')" style="flex:1;font-size:11px">My Own Workout</button>
+            </div>
+
             <div id="modalExercises"></div>
+
+            <!-- Custom exercise input (hidden by default) -->
+            <div id="customExerciseSection" style="display:none">
+                <div id="customExerciseList"></div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                    <input type="text" id="customExName" placeholder="Exercise name" style="flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text-light);padding:8px 10px;border-radius:6px;font-size:13px;font-family:inherit">
+                    <button class="btn btn-sm" onclick="addCustomExercise()" style="width:auto;flex:none;padding:8px 14px">+ Add</button>
+                </div>
+            </div>
 
             <!-- Cardio Section -->
             <div class="cardio-section">
@@ -541,6 +606,8 @@
         stepGoal: 10000,
         calGoal: 2200,
         protGoal: 150,
+        carbGoal: 250,
+        fatGoal: 70,
         sleepGoal: 7,
         startWeight: 218,
         weightGoal: 200,
@@ -801,56 +868,18 @@
     function openWorkout(dk) {
         currentDay = dk;
         const plan = defaultPlan[dk];
-        const adjustment = getAdjustment(whoopData.recovery);
-        const exercises = getAdjustedExercises(plan.exercises, adjustment.level);
 
         document.getElementById('modalTitle').textContent = plan.name + ' — ' + plan.label;
 
         // Adjustment note
+        const adjustment = getAdjustment(whoopData.recovery);
         const noteEl = document.getElementById('adjustmentNote');
         if (adjustment.reason) { noteEl.style.display = 'block'; noteEl.textContent = adjustment.reason; }
         else { noteEl.style.display = 'none'; }
 
-        // Exercises with stepper inputs
-        document.getElementById('modalExercises').innerHTML = exercises.map((ex, i) => `
-            <div class="exercise-item" style="border-left:3px solid ${plan.type==='arm'?'var(--accent)':'var(--success)'}">
-                <div class="exercise-name">${ex.name}</div>
-                <div class="exercise-meta">${ex.sets} sets x ${ex.reps} reps</div>
-                <div class="exercise-inputs">
-                    <div class="input-group">
-                        <label class="input-label">Weight (lbs)</label>
-                        <div class="stepper">
-                            <button onclick="stepValue('w${i}',-5)">-</button>
-                            <input type="number" id="w${i}" class="exercise-weight" data-index="${i}" step="5" placeholder="0">
-                            <button onclick="stepValue('w${i}',5)">+</button>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label class="input-label">Reps</label>
-                        <div class="stepper">
-                            <button onclick="stepValue('r${i}',-1)">-</button>
-                            <input type="number" id="r${i}" class="exercise-reps" data-index="${i}" step="1" placeholder="${ex.reps}">
-                            <button onclick="stepValue('r${i}',1)">+</button>
-                        </div>
-                    </div>
-                </div>
-                <textarea class="exercise-notes" data-index="${i}" placeholder="Notes (optional)" style="margin-top:6px"></textarea>
-            </div>
-        `).join('');
-
-        // Restore saved data
-        const wKey = `${dk}-${new Date().getFullYear()}-${new Date().getMonth()}`;
-        const log = workoutLogs[wKey];
-        if (log?.exercises) {
-            log.exercises.forEach((ex, i) => {
-                const w = document.getElementById('w'+i);
-                const r = document.getElementById('r'+i);
-                const n = document.querySelectorAll('.exercise-notes')[i];
-                if (w) w.value = ex.weight || '';
-                if (r) r.value = ex.reps || '';
-                if (n) n.value = ex.notes || '';
-            });
-        }
+        // Set mode for this day
+        const mode = dayModes[dk] || 'suggested';
+        setDayMode(mode);
 
         // Restore cardio
         const dd = getDailyData(getDateForDay(dk).toISOString().split('T')[0]);
@@ -890,44 +919,55 @@
         saveWorkoutProgress();
     }
 
-    function saveWorkoutProgress() {
-        if (!currentDay) return;
-        const wKey = `${currentDay}-${new Date().getFullYear()}-${new Date().getMonth()}`;
-        const exercises = collectInputs();
-        const existing = workoutLogs[wKey];
-        workoutLogs[wKey] = {completed: existing?.completed || false, exercises, timestamp: new Date().toISOString()};
-        localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
-
-        // Save cardio
+    function saveCardio() {
         const dateStr = getDateForDay(currentDay).toISOString().split('T')[0];
         const cardioType = document.getElementById('cardioType').value;
         const steps = parseInt(document.getElementById('cardioSteps').value) || 0;
         if (cardioType || steps) {
-            saveDailyData(dateStr, {
-                steps: steps,
-                cardio: {type: cardioType, duration: document.getElementById('cardioDuration').value, steps}
-            });
+            saveDailyData(dateStr, {steps, cardio:{type:cardioType, duration:document.getElementById('cardioDuration').value, steps}});
         }
+    }
 
+    function saveWorkoutProgress() {
+        if (!currentDay) return;
+        const mode = dayModes[currentDay] || 'suggested';
+        const wKey = `${currentDay}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+        const existing = workoutLogs[wKey];
+
+        if (mode === 'custom') {
+            saveCustomExerciseInputs();
+            const list = customExercises[currentDay] || [];
+            workoutLogs[wKey] = {completed: existing?.completed || false, exercises: list, mode:'custom', timestamp: new Date().toISOString()};
+        } else {
+            const exercises = collectInputs();
+            workoutLogs[wKey] = {completed: existing?.completed || false, exercises, mode:'suggested', timestamp: new Date().toISOString()};
+        }
+        localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
+        saveCardio();
         renderCalendar();
         updateGoalsBar();
     }
 
     function markWorkoutComplete() {
         if (!currentDay) return;
+        const mode = dayModes[currentDay] || 'suggested';
         const wKey = `${currentDay}-${new Date().getFullYear()}-${new Date().getMonth()}`;
-        const exercises = collectInputs();
-        const hasData = exercises.some(e => e.weight || e.reps);
+
+        let exercises, hasData;
+        if (mode === 'custom') {
+            saveCustomExerciseInputs();
+            exercises = customExercises[currentDay] || [];
+            hasData = exercises.some(e => e.weight || e.reps);
+        } else {
+            exercises = collectInputs();
+            hasData = exercises.some(e => e.weight || e.reps);
+        }
+
         if (!hasData && !confirm('No data logged. Mark complete anyway?')) return;
 
-        workoutLogs[wKey] = {completed:true, exercises, timestamp:new Date().toISOString()};
+        workoutLogs[wKey] = {completed:true, exercises, mode, timestamp:new Date().toISOString()};
         localStorage.setItem('workoutLogs', JSON.stringify(workoutLogs));
-
-        // Save cardio too
-        const dateStr = getDateForDay(currentDay).toISOString().split('T')[0];
-        const cardioType = document.getElementById('cardioType').value;
-        const steps = parseInt(document.getElementById('cardioSteps').value) || 0;
-        if (cardioType || steps) saveDailyData(dateStr, {steps, cardio:{type:cardioType, duration:document.getElementById('cardioDuration').value, steps}});
+        saveCardio();
 
         const btn = document.getElementById('markCompleteBtn');
         btn.textContent = 'Done!';
@@ -956,6 +996,152 @@
             });
         });
         return exercises;
+    }
+
+    // ===== PER-DAY WORKOUT MODE =====
+    let customExercises = JSON.parse(localStorage.getItem('customExercises')) || {};
+    let dayModes = JSON.parse(localStorage.getItem('dayModes')) || {};
+
+    function setDayMode(mode) {
+        if (!currentDay) return;
+        dayModes[currentDay] = mode;
+        localStorage.setItem('dayModes', JSON.stringify(dayModes));
+
+        if (mode === 'suggested') {
+            document.getElementById('modeArmageddon').className = 'btn btn-sm';
+            document.getElementById('modeCustom').className = 'btn btn-sm btn-secondary';
+            document.getElementById('modalExercises').style.display = 'block';
+            document.getElementById('customExerciseSection').style.display = 'none';
+            // Re-render suggested exercises
+            renderSuggestedExercises(currentDay);
+        } else {
+            document.getElementById('modeArmageddon').className = 'btn btn-sm btn-secondary';
+            document.getElementById('modeCustom').className = 'btn btn-sm';
+            document.getElementById('modalExercises').style.display = 'none';
+            document.getElementById('customExerciseSection').style.display = 'block';
+            renderCustomExercises(currentDay);
+        }
+    }
+
+    function renderSuggestedExercises(dk) {
+        const plan = defaultPlan[dk];
+        const adjustment = getAdjustment(whoopData.recovery);
+        const exercises = getAdjustedExercises(plan.exercises, adjustment.level);
+        document.getElementById('modalExercises').innerHTML = exercises.map((ex, i) => `
+            <div class="exercise-item" style="border-left:3px solid ${plan.type==='arm'?'var(--accent)':'var(--success)'}">
+                <div class="exercise-name">${ex.name}</div>
+                <div class="exercise-meta">${ex.sets} sets x ${ex.reps} reps</div>
+                <div class="exercise-inputs">
+                    <div class="input-group">
+                        <label class="input-label">Weight (lbs)</label>
+                        <div class="stepper">
+                            <button onclick="stepValue('w${i}',-5)">-</button>
+                            <input type="number" id="w${i}" class="exercise-weight" data-index="${i}" step="5" placeholder="0">
+                            <button onclick="stepValue('w${i}',5)">+</button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Reps</label>
+                        <div class="stepper">
+                            <button onclick="stepValue('r${i}',-1)">-</button>
+                            <input type="number" id="r${i}" class="exercise-reps" data-index="${i}" step="1" placeholder="${ex.reps}">
+                            <button onclick="stepValue('r${i}',1)">+</button>
+                        </div>
+                    </div>
+                </div>
+                <textarea class="exercise-notes" data-index="${i}" placeholder="Notes (optional)" style="margin-top:6px"></textarea>
+            </div>
+        `).join('');
+
+        // Restore saved data
+        const wKey = `${dk}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+        const log = workoutLogs[wKey];
+        if (log?.exercises) {
+            log.exercises.forEach((ex, i) => {
+                const w = document.getElementById('w'+i);
+                const r = document.getElementById('r'+i);
+                const n = document.querySelectorAll('.exercise-notes')[i];
+                if (w) w.value = ex.weight || '';
+                if (r) r.value = ex.reps || '';
+                if (n) n.value = ex.notes || '';
+            });
+        }
+    }
+
+    function renderCustomExercises(dk) {
+        const list = customExercises[dk] || [];
+        const container = document.getElementById('customExerciseList');
+        if (!list.length) {
+            container.innerHTML = '<p style="color:#555;font-size:13px;text-align:center;padding:12px">No custom exercises yet. Add one below.</p>';
+            return;
+        }
+        container.innerHTML = list.map((ex, i) => `
+            <div class="exercise-item">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <div class="exercise-name" style="margin:0">${ex.name}</div>
+                    <button class="food-remove" onclick="removeCustomExercise(${i})" style="font-size:18px">&times;</button>
+                </div>
+                <div class="exercise-inputs">
+                    <div class="input-group">
+                        <label class="input-label">Weight (lbs)</label>
+                        <div class="stepper">
+                            <button onclick="stepValue('cw${i}',-5)">-</button>
+                            <input type="number" id="cw${i}" class="custom-weight" data-index="${i}" step="5" placeholder="0" value="${ex.weight||''}">
+                            <button onclick="stepValue('cw${i}',5)">+</button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Sets</label>
+                        <div class="stepper">
+                            <button onclick="stepValue('cs${i}',-1)">-</button>
+                            <input type="number" id="cs${i}" class="custom-sets" data-index="${i}" step="1" placeholder="4" value="${ex.sets||''}">
+                            <button onclick="stepValue('cs${i}',1)">+</button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Reps</label>
+                        <div class="stepper">
+                            <button onclick="stepValue('cr${i}',-1)">-</button>
+                            <input type="number" id="cr${i}" class="custom-reps" data-index="${i}" step="1" placeholder="10" value="${ex.reps||''}">
+                            <button onclick="stepValue('cr${i}',1)">+</button>
+                        </div>
+                    </div>
+                </div>
+                <textarea class="custom-notes" data-index="${i}" placeholder="Notes" style="margin-top:6px">${ex.notes||''}</textarea>
+            </div>
+        `).join('');
+    }
+
+    function addCustomExercise() {
+        const name = document.getElementById('customExName').value.trim();
+        if (!name) return;
+        if (!customExercises[currentDay]) customExercises[currentDay] = [];
+        customExercises[currentDay].push({name, weight:'', sets:'', reps:'', notes:''});
+        localStorage.setItem('customExercises', JSON.stringify(customExercises));
+        document.getElementById('customExName').value = '';
+        renderCustomExercises(currentDay);
+    }
+
+    function removeCustomExercise(idx) {
+        if (!customExercises[currentDay]) return;
+        customExercises[currentDay].splice(idx, 1);
+        localStorage.setItem('customExercises', JSON.stringify(customExercises));
+        renderCustomExercises(currentDay);
+    }
+
+    function saveCustomExerciseInputs() {
+        if (!currentDay || dayModes[currentDay] !== 'custom') return;
+        const list = customExercises[currentDay] || [];
+        document.querySelectorAll('.custom-weight').forEach((input, i) => {
+            if (list[i]) {
+                list[i].weight = input.value;
+                list[i].sets = document.querySelectorAll('.custom-sets')[i]?.value || '';
+                list[i].reps = document.querySelectorAll('.custom-reps')[i]?.value || '';
+                list[i].notes = document.querySelectorAll('.custom-notes')[i]?.value || '';
+            }
+        });
+        customExercises[currentDay] = list;
+        localStorage.setItem('customExercises', JSON.stringify(customExercises));
     }
 
     // ===== WEIGHT =====
@@ -987,22 +1173,85 @@
     }
 
     // ===== FOOD LOGGING =====
-    function addFoodEntry() {
+    // ===== AI FOOD ANALYSIS =====
+    let pendingFoodData = null;
+
+    async function analyzeAndLogFood() {
         const food = document.getElementById('foodInput').value.trim();
         if (!food) return;
-        const cal = parseInt(document.getElementById('foodCalories').value) || 0;
-        const prot = parseInt(document.getElementById('foodProtein').value) || 0;
-        const meal = document.getElementById('foodMealType').value;
 
+        const btn = document.getElementById('foodLogBtn');
+        const loading = document.getElementById('foodAiLoading');
+        btn.disabled = true; btn.textContent = '...';
+        loading.style.display = 'block';
+
+        try {
+            const resp = await fetch('/api/food', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({action:'analyze', food})
+            });
+            if (!resp.ok) throw new Error('AI analysis failed');
+            const data = await resp.json();
+            pendingFoodData = {food, ...data, meal: document.getElementById('foodMealType').value};
+            showFoodPreview(data);
+        } catch(e) {
+            console.error(e);
+            alert('AI analysis failed. Check that ANTHROPIC_API_KEY is set in Vercel.');
+        } finally {
+            btn.disabled = false; btn.textContent = 'Log';
+            loading.style.display = 'none';
+        }
+    }
+
+    function showFoodPreview(data) {
+        const preview = document.getElementById('foodAiPreview');
+        const items = document.getElementById('foodAiItems');
+        const total = document.getElementById('foodAiTotal');
+
+        items.innerHTML = (data.items || []).map(it => `
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+                <span style="color:#ccc">${it.name}</span>
+                <span style="color:#888">${it.calories}cal / ${it.protein}p / ${it.carbs}c / ${it.fat}f</span>
+            </div>
+        `).join('');
+
+        const t = data.total || {calories:0,protein:0,carbs:0,fat:0};
+        total.innerHTML = `
+            <span style="color:var(--accent)">${t.calories} cal</span>
+            <span style="color:var(--success)">${t.protein}g prot</span>
+            <span style="color:var(--warning)">${t.carbs}g carbs</span>
+            <span style="color:#93c5fd">${t.fat}g fat</span>
+        `;
+        preview.style.display = 'block';
+    }
+
+    function confirmFoodEntry() {
+        if (!pendingFoodData) return;
+        const t = pendingFoodData.total || {calories:0,protein:0,carbs:0,fat:0};
         if (!foodLogs[today()]) foodLogs[today()] = [];
-        foodLogs[today()].push({food, calories:cal, protein:prot, meal, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+        foodLogs[today()].push({
+            food: pendingFoodData.food,
+            calories: t.calories,
+            protein: t.protein,
+            carbs: t.carbs,
+            fat: t.fat,
+            items: pendingFoodData.items,
+            meal: pendingFoodData.meal,
+            time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})
+        });
         localStorage.setItem('foodLogs', JSON.stringify(foodLogs));
 
         document.getElementById('foodInput').value = '';
-        document.getElementById('foodCalories').value = '';
-        document.getElementById('foodProtein').value = '';
+        document.getElementById('foodAiPreview').style.display = 'none';
+        pendingFoodData = null;
         renderFoodLog();
         updateGoalsBar();
+    }
+
+    function cancelFoodPreview() {
+        document.getElementById('foodAiPreview').style.display = 'none';
+        pendingFoodData = null;
     }
 
     function removeFoodEntry(idx) {
@@ -1021,20 +1270,73 @@
         else {
             container.innerHTML = todayFoods.map((f, i) => `
                 <div class="food-item">
-                    <div>
-                        <span style="color:var(--text-light)">${f.food}</span>
-                        <span style="color:#555;font-size:11px;margin-left:6px">${f.meal} ${f.time}</span>
+                    <div style="flex:1;min-width:0">
+                        <div style="color:var(--text-light);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.food}</div>
+                        <div style="color:#555;font-size:10px;margin-top:2px">${f.meal} ${f.time}</div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px">
-                        <span style="color:var(--accent);font-size:12px">${f.calories}cal ${f.protein}g</span>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                        <span style="font-size:11px;color:var(--accent)">${f.calories}cal</span>
+                        <span style="font-size:11px;color:var(--success)">${f.protein}p</span>
+                        <span style="font-size:11px;color:var(--warning)">${f.carbs||0}c</span>
+                        <span style="font-size:11px;color:#93c5fd">${f.fat||0}f</span>
                         <button class="food-remove" onclick="removeFoodEntry(${i})">&times;</button>
                     </div>
                 </div>
             `).join('');
         }
-        document.getElementById('totalCalories').textContent = getTodayCalories();
-        document.getElementById('totalProtein').textContent = getTodayProtein()+'g';
-        document.getElementById('totalMeals').textContent = todayFoods.length;
+
+        const cal = getTodayCalories();
+        const prot = getTodayProtein();
+        const carbs = todayFoods.reduce((s,f)=>s+(f.carbs||0),0);
+        const fat = todayFoods.reduce((s,f)=>s+(f.fat||0),0);
+
+        document.getElementById('totalCalories').textContent = cal;
+        document.getElementById('totalProtein').textContent = prot+'g';
+        document.getElementById('totalCarbs').textContent = carbs+'g';
+        document.getElementById('totalFat').textContent = fat+'g';
+
+        document.getElementById('calGoalLabel').textContent = '/ '+config.calGoal;
+        document.getElementById('protGoalLabel').textContent = '/ '+config.protGoal+'g';
+        document.getElementById('carbGoalLabel').textContent = '/ '+config.carbGoal+'g';
+        document.getElementById('fatGoalLabel').textContent = '/ '+config.fatGoal+'g';
+    }
+
+    // ===== AI MACRO GOALS =====
+    async function getAIMacros() {
+        const btn = document.getElementById('aiMacroBtn');
+        const result = document.getElementById('aiMacroResult');
+        btn.disabled = true; btn.textContent = 'Thinking...';
+        result.style.display = 'none';
+
+        try {
+            const resp = await fetch('/api/food', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    action: 'goals',
+                    weight: config.startWeight,
+                    goalWeight: config.weightGoal,
+                    activityLevel: document.getElementById('aiActivityLevel').value,
+                    goal: document.getElementById('aiGoalType').value
+                })
+            });
+            if (!resp.ok) throw new Error('Failed');
+            const data = await resp.json();
+
+            // Auto-fill the settings inputs
+            document.getElementById('goalCalTarget').value = data.calories;
+            document.getElementById('goalProtTarget').value = data.protein;
+            document.getElementById('goalCarbTarget').value = data.carbs;
+            document.getElementById('goalFatTarget').value = data.fat;
+
+            result.innerHTML = `<strong style="color:var(--accent)">Recommended:</strong> ${data.calories} cal / ${data.protein}g protein / ${data.carbs}g carbs / ${data.fat}g fat<br><span style="color:#666">${data.explanation || ''}</span>`;
+            result.style.display = 'block';
+        } catch(e) {
+            console.error(e);
+            alert('AI macro suggestion failed. Check ANTHROPIC_API_KEY.');
+        } finally {
+            btn.disabled = false; btn.textContent = 'AI Suggest My Macros';
+        }
     }
 
     function renderFoodHistory() {
@@ -1173,6 +1475,8 @@
         document.getElementById('goalStepsTarget').value = config.stepGoal;
         document.getElementById('goalCalTarget').value = config.calGoal;
         document.getElementById('goalProtTarget').value = config.protGoal;
+        document.getElementById('goalCarbTarget').value = config.carbGoal;
+        document.getElementById('goalFatTarget').value = config.fatGoal;
         document.getElementById('goalSleepTarget').value = config.sleepGoal;
         document.getElementById('startWeightTarget').value = config.startWeight;
         document.getElementById('goalWeightTarget').value = config.weightGoal;
@@ -1187,6 +1491,8 @@
             stepGoal: parseInt(document.getElementById('goalStepsTarget').value),
             calGoal: parseInt(document.getElementById('goalCalTarget').value),
             protGoal: parseInt(document.getElementById('goalProtTarget').value),
+            carbGoal: parseInt(document.getElementById('goalCarbTarget').value),
+            fatGoal: parseInt(document.getElementById('goalFatTarget').value),
             sleepGoal: parseFloat(document.getElementById('goalSleepTarget').value),
             startWeight: parseInt(document.getElementById('startWeightTarget').value),
             weightGoal: parseInt(document.getElementById('goalWeightTarget').value),
