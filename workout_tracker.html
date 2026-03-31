@@ -1519,8 +1519,6 @@
         document.getElementById('goalSleepTarget').value = config.sleepGoal;
         document.getElementById('startWeightTarget').value = config.startWeight;
         document.getElementById('goalWeightTarget').value = config.weightGoal;
-        const toggle = document.getElementById('toggleSuggested');
-        if (config.useSuggested) toggle.classList.add('on'); else toggle.classList.remove('on');
     }
 
     function saveSettings() {
@@ -1541,13 +1539,6 @@
         renderCalendar();
         updateGoalsBar();
         alert('Settings saved!');
-    }
-
-    function toggleWorkoutMode() {
-        config.useSuggested = !config.useSuggested;
-        localStorage.setItem('config', JSON.stringify(config));
-        const toggle = document.getElementById('toggleSuggested');
-        toggle.classList.toggle('on');
     }
 
     function exportData() {
