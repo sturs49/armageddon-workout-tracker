@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rekova-v5';
+const CACHE_NAME = 'kova-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

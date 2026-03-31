@@ -1,6 +1,6 @@
 {
-  "name": "reKova",
-  "short_name": "reKova",
+  "name": "Kova",
+  "short_name": "Kova",
   "description": "Recovery-driven workout tracker with WHOOP integration and AI nutrition",
   "start_url": "/",
   "display": "standalone",
