@@ -924,6 +924,8 @@
         }
 
         // Button state
+        const wKey = `${dk}-${new Date().getFullYear()}-${new Date().getMonth()}`;
+        const log = workoutLogs[wKey];
         const btn = document.getElementById('markCompleteBtn');
         if (log?.completed) {
             btn.textContent = 'Completed — Undo?';
