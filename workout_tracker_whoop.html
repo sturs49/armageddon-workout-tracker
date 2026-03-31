@@ -995,9 +995,12 @@
 
     function getDateForDay(dk) {
         const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-        const t = new Date(); const cd = t.getDay();
-        const dist = days.indexOf(dk) - (cd === 0 ? 6 : cd - 1);
-        return new Date(t.getTime() + dist*86400000);
+        const t = new Date();
+        const cd = t.getDay(); // 0=Sun
+        const mondayOffset = cd === 0 ? -6 : 1 - cd;
+        const monday = new Date(t.getFullYear(), t.getMonth(), t.getDate() + mondayOffset);
+        const target = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + days.indexOf(dk));
+        return target;
     }
 
     // ===== WORKOUT MODAL =====
