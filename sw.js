@@ -1,4 +1,4 @@
-const CACHE_NAME = 'armageddon-v1';
+const CACHE_NAME = 'rekova-v2';
 const ASSETS_TO_CACHE = [
   '/workout_tracker_whoop.html',
   '/manifest.json',

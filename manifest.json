@@ -1,7 +1,7 @@
 {
-  "name": "ARMageddon Workout Tracker",
-  "short_name": "ARMageddon",
-  "description": "Workout tracker with WHOOP integration and recovery-based adjustments",
+  "name": "reKova",
+  "short_name": "reKova",
+  "description": "Recovery-driven workout tracker with WHOOP integration and AI nutrition",
   "start_url": "/workout_tracker_whoop.html",
   "display": "standalone",
   "background_color": "#000000",

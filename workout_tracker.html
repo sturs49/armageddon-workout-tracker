@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>ARMageddon Workout Tracker</title>
+    <title>reKova</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ARMageddon">
+    <meta name="apple-mobile-web-app-title" content="reKova">
     <link rel="apple-touch-icon" href="/icons/icon-180.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -206,7 +206,7 @@
     <!-- Header -->
     <div class="header">
         <div class="header-top">
-            <div class="header-title">ARMageddon</div>
+            <div class="header-title">reKova</div>
             <div class="whoop-status disconnected" id="whoopStatus" onclick="window.location.href='workout_tracker_whoop.html'">
                 <span id="whoopStatusText">WHOOP</span>
             </div>
@@ -519,7 +519,7 @@
 
             <!-- Per-day workout mode toggle -->
             <div style="display:flex;gap:8px;margin-bottom:12px">
-                <button class="btn btn-sm" id="modeArmageddon" onclick="setDayMode('suggested')" style="flex:1;font-size:11px">ARMageddon Plan</button>
+                <button class="btn btn-sm" id="modeArmageddon" onclick="setDayMode('suggested')" style="flex:1;font-size:11px">Suggested Plan</button>
                 <button class="btn btn-sm btn-secondary" id="modeCustom" onclick="setDayMode('custom')" style="flex:1;font-size:11px">My Own Workout</button>
             </div>
 
@@ -1548,7 +1548,7 @@
         const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `armageddon_export_${today()}.json`;
+        a.download = `rekova_export_${today()}.json`;
         a.click();
     }
 
