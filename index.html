@@ -263,7 +263,7 @@
     <div class="ob-step" id="ob3">
         <div class="ob-title">Connect WHOOP</div>
         <div class="ob-sub">Optional — sync recovery, sleep, and strain to auto-adjust your workouts.</div>
-        <button class="btn" onclick="authenticateWHOOP()">Connect WHOOP</button>
+        <button class="btn" onclick="localStorage.setItem('onboardingDone','true');authenticateWHOOP()">Connect WHOOP</button>
         <button class="btn btn-secondary" onclick="obNext(4)" style="margin-top:8px">Skip for now</button>
         <div class="ob-dots"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot active"></div><div class="ob-dot"></div></div>
     </div>
