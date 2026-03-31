@@ -703,14 +703,15 @@
     let currentDay = null;
     let viewMonth = new Date().getMonth();
     let viewYear = new Date().getFullYear();
-    let weightHistory = JSON.parse(localStorage.getItem('weightHistory')) || [{date:new Date().toISOString().split('T')[0], weight:config.startWeight}];
+    let weightHistory = JSON.parse(localStorage.getItem('weightHistory')) || [{date:today(), weight:config.startWeight}];
     let workoutLogs = JSON.parse(localStorage.getItem('workoutLogs')) || {};
     let foodLogs = JSON.parse(localStorage.getItem('foodLogs')) || {};
     let dailyData = JSON.parse(localStorage.getItem('dailyData')) || {};
     let whoopData = JSON.parse(localStorage.getItem('whoopData')) || {recovery:0,sleep:0,strain:0,steps:0,hrv:0};
 
-    function today(){return new Date().toISOString().split('T')[0]}
-    function dayKey(date){return ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date(date).getDay()]}
+    function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+    function toLocalDateStr(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+    function dayKey(date){const parts=date.split('-');const d=new Date(+parts[0],+parts[1]-1,+parts[2]);return ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][d.getDay()]}
 
     // ===== INIT =====
     document.addEventListener('DOMContentLoaded', () => {
@@ -851,7 +852,7 @@
         days.forEach(dk => {
             const plan = defaultPlan[dk];
             const dateForDay = getDateForDay(dk);
-            const dateStr = dateForDay.toISOString().split('T')[0];
+            const dateStr = toLocalDateStr(dateForDay);
             const isToday = dateStr === todayDate;
             const wKey = `${dk}-${new Date().getFullYear()}-${new Date().getMonth()}`;
             const log = workoutLogs[wKey];
@@ -889,9 +890,11 @@
 
     function getDateForDay(dk) {
         const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-        const t = new Date(); const cd = t.getDay();
-        const dist = days.indexOf(dk) - (cd === 0 ? 6 : cd - 1);
-        return new Date(t.getTime() + dist*86400000);
+        const t = new Date();
+        const cd = t.getDay();
+        const mondayOffset = cd === 0 ? -6 : 1 - cd;
+        const monday = new Date(t.getFullYear(), t.getMonth(), t.getDate() + mondayOffset);
+        return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + days.indexOf(dk));
     }
 
     // ===== WORKOUT MODAL =====
@@ -912,7 +915,7 @@
         setDayMode(mode);
 
         // Restore cardio
-        const dd = getDailyData(getDateForDay(dk).toISOString().split('T')[0]);
+        const dd = getDailyData(toLocalDateStr(getDateForDay(dk)));
         if (dd.cardio) {
             document.getElementById('cardioType').value = dd.cardio.type || '';
             document.getElementById('cardioDuration').value = dd.cardio.duration || '';
@@ -952,7 +955,7 @@
     }
 
     function saveCardio() {
-        const dateStr = getDateForDay(currentDay).toISOString().split('T')[0];
+        const dateStr = toLocalDateStr(getDateForDay(currentDay));
         const cardioType = document.getElementById('cardioType').value;
         const steps = parseInt(document.getElementById('cardioSteps').value) || 0;
         if (cardioType || steps) {
@@ -1385,7 +1388,7 @@
         let html = '';
         for (let i = 1; i <= 7; i++) {
             const d = new Date(); d.setDate(d.getDate()-i);
-            const ds = d.toISOString().split('T')[0];
+            const ds = toLocalDateStr(d);
             const foods = foodLogs[ds] || [];
             const cal = foods.reduce((s,f)=>s+(f.calories||0),0);
             const prot = foods.reduce((s,f)=>s+(f.protein||0),0);
