@@ -227,11 +227,11 @@
         <div class="ob-sub">We'll use this to personalize your experience.</div>
         <div class="ob-input-group">
             <div class="ob-label">Current Weight (lbs)</div>
-            <input type="number" class="ob-input" id="obWeight" placeholder="218">
+            <input type="number" class="ob-input" id="obWeight" placeholder="Current weight">
         </div>
         <div class="ob-input-group">
             <div class="ob-label">Goal Weight (lbs)</div>
-            <input type="number" class="ob-input" id="obGoalWeight" placeholder="200">
+            <input type="number" class="ob-input" id="obGoalWeight" placeholder="Goal weight">
         </div>
         <div class="ob-input-group">
             <div class="ob-label">Activity Level</div>
@@ -472,7 +472,7 @@
 let config = JSON.parse(localStorage.getItem('config')) || {
     thresholdFull:70, thresholdLight:50,
     stepGoal:10000, calGoal:2200, protGoal:150, carbGoal:250, fatGoal:70,
-    sleepGoal:7, startWeight:218, weightGoal:200
+    sleepGoal:7, startWeight:0, weightGoal:0
 };
 
 // ===== WORKOUT PLAN =====
@@ -576,8 +576,9 @@ function obNext(step) {
 }
 
 async function obGenerateMacros() {
-    const w = parseInt(document.getElementById('obWeight').value) || 218;
-    const gw = parseInt(document.getElementById('obGoalWeight').value) || 200;
+    const w = parseInt(document.getElementById('obWeight').value);
+    const gw = parseInt(document.getElementById('obGoalWeight').value);
+    if (!w || !gw) { alert('Please enter your current and goal weight.'); return; }
     const activity = document.getElementById('obActivity').value;
     const goal = document.getElementById('obGoal').value;
 
