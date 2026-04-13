@@ -635,7 +635,7 @@ function renderGoals(){
 function logSteps(){
     const current=JSON.parse(localStorage.getItem('kova_manualSteps')||'{}');
     const existing=current[todayStr()]||'';
-    const val=prompt('Enter today\\'s steps:',existing);
+    const val=prompt("Enter today's steps:",existing);
     if(val!==null&&val!==''){
         current[todayStr()]=parseInt(val)||0;
         localStorage.setItem('kova_manualSteps',JSON.stringify(current));
