@@ -164,6 +164,18 @@
         .toast{position:fixed;top:20px;left:20px;right:20px;background:var(--accent);color:var(--text-dark);padding:10px 14px;border-radius:8px;font-size:12px;font-weight:700;z-index:2000;animation:slideIn .25s ease;text-align:center}
         @keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
 
+        /* Modal */
+        .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:1000;overflow-y:auto}
+        .modal.active{display:flex;align-items:flex-end}
+        .modal-content{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:500px;margin:auto auto 0;animation:modalUp .25s ease;border:1px solid var(--border);border-bottom:none;max-height:80vh;overflow-y:auto}
+        @keyframes modalUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+        .modal-header{font-size:18px;font-weight:900;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+        .modal-close{background:none;border:none;color:#555;font-size:26px;cursor:pointer;padding:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+        .detail-stat{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px}
+        .detail-stat:last-child{border:none}
+        .detail-label{color:var(--text-dim)}
+        .detail-value{font-weight:800}
+
         /* Scroll */
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
         @media(max-width:640px){.cardio-row{grid-template-columns:1fr 1fr}}
@@ -268,6 +280,33 @@
     <div class="card">
         <div class="card-title">This Week</div>
         <div class="heatmap" id="heatmap"></div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:9px;color:#555">
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(74,222,128,.25)"></span>4-5</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(251,191,36,.25)"></span>2-3</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(239,68,68,.25)"></span>0-1</span>
+        </div>
+    </div>
+
+    <!-- Monthly Heatmap -->
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div class="card-title" style="margin:0">Monthly View</div>
+            <div style="display:flex;gap:6px;align-items:center">
+                <button class="btn btn-sm btn-ghost" onclick="changeMonth(-1)" style="width:auto;padding:4px 10px;font-size:14px">&lt;</button>
+                <span id="monthLabel" style="font-size:11px;font-weight:700;color:var(--text-dim);min-width:80px;text-align:center"></span>
+                <button class="btn btn-sm btn-ghost" onclick="changeMonth(1)" style="width:auto;padding:4px 10px;font-size:14px">&gt;</button>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">M</div>
+            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">T</div>
+            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">W</div>
+            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">T</div>
+            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">F</div>
+            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">S</div>
+            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">S</div>
+        </div>
+        <div class="heatmap" id="monthlyHeatmap"></div>
     </div>
 </div>
 
@@ -351,6 +390,17 @@
             <button class="btn btn-sm btn-ghost" onclick="exportData()" style="margin-bottom:6px">Export All Data</button>
             <button class="btn btn-sm btn-danger" onclick="if(confirm('Clear ALL data?')){localStorage.clear();location.reload()}">Clear All Data</button>
         </div>
+    </div>
+</div>
+
+<!-- Ring Detail Modal -->
+<div class="modal" id="ringModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span id="ringModalTitle"></span>
+            <button class="modal-close" onclick="closeRingModal()">&times;</button>
+        </div>
+        <div id="ringModalBody"></div>
     </div>
 </div>
 
@@ -535,22 +585,29 @@ function renderGoals(){
     const foods=foodLogs[todayStr()]||[];
     const cal=foods.reduce((s,f)=>s+(f.calories||0),0);
     const prot=foods.reduce((s,f)=>s+(f.protein||0),0);
-    const sleep=whoopData.sleep||0;
-    const steps=whoopData.steps||0;
+    const carb=foods.reduce((s,f)=>s+(f.carbs||0),0);
+    const fat=foods.reduce((s,f)=>s+(f.fat||0),0);
     const done=workoutLogs[wKey(todayKey())]?.completed;
-
+    const checks=dailyChecks[todayStr()]||{};
+    const habitsCount=[checks.sleep,checks.move,checks.mind,checks.stress].filter(Boolean).length;
     const manualSteps=JSON.parse(localStorage.getItem('kova_manualSteps')||'{}');
-    const todaySteps=manualSteps[todayStr()]||steps;
+    const todaySteps=manualSteps[todayStr()]||0;
+
+    // Smart metrics
+    const rec=whoopData.recovery||0;
+    const macroPcts=[cal/config.calGoal,prot/config.protGoal,carb/config.carbGoal,fat/config.fatGoal];
+    const macroAvg=Math.round(macroPcts.reduce((a,b)=>a+b,0)/4*100);
+
     const goals=[
-        {label:'Cal',value:cal,max:config.calGoal,display:cal,tap:''},
-        {label:'Prot',value:prot,max:config.protGoal,display:prot+'g',tap:''},
-        {label:'Sleep',value:sleep,max:config.sleepGoal,display:sleep?sleep.toFixed(1)+'h':'\u2014',tap:''},
-        {label:'Steps',value:todaySteps,max:config.stepGoal,display:todaySteps>0?todaySteps>=1000?Math.round(todaySteps/1000)+'k':todaySteps:'0',tap:'logSteps()'},
-        {label:'Gym',value:done?1:0,max:1,display:done?'\u2713':'\u2014',tap:''},
+        {label:'Recov',value:rec,max:100,display:rec>0?rec+'%':'\u2014',tap:'showRing("recovery")',color:rec>=70?'var(--success)':rec>=50?'var(--warning)':rec>0?'var(--error)':null},
+        {label:'Macros',value:Math.min(100,macroAvg),max:100,display:macroAvg>0?macroAvg+'%':'0%',tap:'showRing("macros")'},
+        {label:'Habits',value:habitsCount,max:4,display:habitsCount+'/4',tap:'showRing("habits")'},
+        {label:'Gym',value:done?1:0,max:1,display:done?'\u2713':'\u2014',tap:'showRing("gym")'},
+        {label:'Steps',value:todaySteps,max:config.stepGoal,display:todaySteps>0?todaySteps>=1000?Math.round(todaySteps/1000)+'k':todaySteps:'0',tap:'showRing("steps")'},
     ];
     strip.innerHTML=goals.map(g=>{
         const pct=Math.min(100,(g.value/g.max)*100);
-        const color=pct>=80?'var(--success)':pct>=40?'var(--warning)':'var(--error)';
+        const color=g.color||(pct>=80?'var(--success)':pct>=40?'var(--warning)':'var(--error)');
         const r=18,circ=2*Math.PI*r,dash=(pct/100)*circ;
         return `<div class="goal-chip" ${g.tap?`onclick="${g.tap}"`:''}><div class="goal-ring"><svg width="44" height="44"><circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${dash} ${circ}"/></svg><span class="val" style="color:${color}">${g.display}</span></div><span class="goal-lbl">${g.label}</span></div>`
     }).join('');
@@ -567,6 +624,91 @@ function logSteps(){
         toast('Steps updated: '+current[todayStr()]);
     }
 }
+
+function logRecovery(){
+    if(whoopToken)return;
+    const val=prompt('Enter recovery % (or connect WHOOP):','');
+    if(val!==null&&val!==''){
+        whoopData.recovery=parseInt(val)||0;
+        save('kova_whoop',whoopData);
+        renderGoals();updateRecBar();renderWorkout();checkAlerts();
+        toast('Recovery set: '+whoopData.recovery+'%');
+    }
+}
+
+function showRing(type){
+    const modal=document.getElementById('ringModal');
+    const title=document.getElementById('ringModalTitle');
+    const body=document.getElementById('ringModalBody');
+    const foods=foodLogs[todayStr()]||[];
+    const cal=foods.reduce((s,f)=>s+(f.calories||0),0);
+    const prot=foods.reduce((s,f)=>s+(f.protein||0),0);
+    const carb=foods.reduce((s,f)=>s+(f.carbs||0),0);
+    const fat=foods.reduce((s,f)=>s+(f.fat||0),0);
+    const checks=dailyChecks[todayStr()]||{};
+    const manualSteps=JSON.parse(localStorage.getItem('kova_manualSteps')||'{}');
+
+    if(type==='recovery'){
+        const r=whoopData.recovery||0;
+        const adj=getAdj(r);
+        title.textContent='Recovery';
+        body.innerHTML=`
+            <div class="detail-stat"><span class="detail-label">Recovery</span><span class="detail-value" style="${adj.css||''}">${r>0?r+'%':'Not set'}</span></div>
+            <div class="detail-stat"><span class="detail-label">Sleep</span><span class="detail-value">${whoopData.sleep?whoopData.sleep.toFixed(1)+'h':'\u2014'}</span></div>
+            <div class="detail-stat"><span class="detail-label">Strain</span><span class="detail-value">${whoopData.strain?whoopData.strain.toFixed(1):'\u2014'}</span></div>
+            <div class="detail-stat"><span class="detail-label">Intensity</span><span class="detail-value" style="${adj.css||''}">${adj.label}</span></div>
+            <div class="detail-stat"><span class="detail-label">Source</span><span class="detail-value">${whoopToken?'WHOOP':'Manual'}</span></div>
+            ${!whoopToken?'<button class="btn" style="margin-top:12px" onclick="closeRingModal();logRecovery()">Set Recovery %</button>':''}`;
+    } else if(type==='macros'){
+        const calPct=Math.round(cal/config.calGoal*100);
+        const protPct=Math.round(prot/config.protGoal*100);
+        const carbPct=Math.round(carb/config.carbGoal*100);
+        const fatPct=Math.round(fat/config.fatGoal*100);
+        const avg=Math.round((calPct+protPct+carbPct+fatPct)/4);
+        title.textContent='Macros';
+        const bar=(lbl,val,goal,pct,color)=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:var(--text-dim)">${lbl}</span><span style="font-weight:700">${val}/${goal} <span style="color:${pct>=80?'var(--success)':pct>=40?'var(--warning)':'var(--error)'}">(${pct}%)</span></span></div><div class="macro-bar"><div class="macro-fill" style="width:${Math.min(100,pct)}%;background:${color}"></div></div></div>`;
+        body.innerHTML=`
+            <div style="text-align:center;margin-bottom:14px"><span style="font-size:28px;font-weight:900;color:${avg>=80?'var(--success)':avg>=40?'var(--warning)':'var(--error)'}">${avg}%</span><div style="font-size:11px;color:var(--text-dim);margin-top:2px">Overall Target</div></div>
+            ${bar('Calories',cal,config.calGoal,calPct,'var(--accent)')}
+            ${bar('Protein',prot+'g',config.protGoal+'g',protPct,'var(--success)')}
+            ${bar('Carbs',carb+'g',config.carbGoal+'g',carbPct,'var(--warning)')}
+            ${bar('Fat',fat+'g',config.fatGoal+'g',fatPct,'#93c5fd')}
+            <div style="font-size:10px;color:#333;margin-top:8px;text-align:center">${foods.length} items logged today</div>`;
+    } else if(type==='habits'){
+        title.textContent='Habits';
+        const items=[
+            {label:'Sleep (10:30p-6a)',done:checks.sleep},
+            {label:'Movement (60 min)',done:checks.move},
+            {label:'Mindful (5-10 min)',done:checks.mind},
+            {label:'Stress management',done:checks.stress}
+        ];
+        body.innerHTML=items.map(i=>`<div class="detail-stat"><span class="detail-label">${i.label}</span><span class="detail-value" style="color:${i.done?'var(--success)':'var(--error)'}">${i.done?'\u2713':'\u2717'}</span></div>`).join('')+
+        `<div style="text-align:center;margin-top:12px;font-size:24px;font-weight:900;color:${items.filter(i=>i.done).length>=3?'var(--success)':'var(--warning)'}">${items.filter(i=>i.done).length}/4</div>
+        <div style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:2px">Non-negotiables completed</div>`;
+    } else if(type==='gym'){
+        const dk=todayKey();
+        const plan=PLAN[dk];
+        const done=workoutLogs[wKey(dk)]?.completed;
+        const log=workoutLogs[wKey(dk)];
+        title.textContent='Workout';
+        body.innerHTML=`
+            <div class="detail-stat"><span class="detail-label">Today</span><span class="detail-value">${plan.label}</span></div>
+            <div class="detail-stat"><span class="detail-label">Status</span><span class="detail-value" style="color:${done?'var(--success)':'var(--text-dim)'}">${done?'Completed':'Not logged'}</span></div>
+            <div class="detail-stat"><span class="detail-label">Exercises</span><span class="detail-value">${log?.exercises?.length||0} logged</span></div>
+            <button class="btn" style="margin-top:12px" onclick="closeRingModal();go('workout',document.querySelectorAll('.nav-btn')[1])">Go to Workout</button>`;
+    } else if(type==='steps'){
+        const s=manualSteps[todayStr()]||0;
+        const pct=Math.round(s/config.stepGoal*100);
+        title.textContent='Steps';
+        body.innerHTML=`
+            <div style="text-align:center;margin-bottom:14px"><span style="font-size:28px;font-weight:900;color:${pct>=80?'var(--success)':pct>=40?'var(--warning)':'var(--error)'}">${s.toLocaleString()}</span><div style="font-size:11px;color:var(--text-dim);margin-top:2px">of ${config.stepGoal.toLocaleString()} goal (${pct}%)</div></div>
+            <div class="macro-bar" style="height:8px;margin-bottom:14px"><div class="macro-fill" style="width:${Math.min(100,pct)}%;background:var(--accent)"></div></div>
+            <button class="btn" style="margin-top:4px" onclick="closeRingModal();logSteps()">Update Steps</button>`;
+    }
+    modal.classList.add('active');
+}
+
+function closeRingModal(){document.getElementById('ringModal').classList.remove('active')}
 
 // ===== DAILY: PRIORITIES =====
 function renderPriorities(){
@@ -692,7 +834,21 @@ function logStress(){
     toast('Stress win logged');
 }
 
-// ===== DAILY: HEATMAP =====
+// ===== HEATMAPS =====
+let viewMonth=new Date().getMonth();
+let viewYear=new Date().getFullYear();
+
+function getDayScore(dateStr,dayKey){
+    const checks=dailyChecks[dateStr]||{};
+    const count=[checks.sleep,checks.move,checks.mind,checks.stress].filter(Boolean).length;
+    const workout=dayKey?workoutLogs[wKey(dayKey)]?.completed:false;
+    return count+(workout?1:0);
+}
+
+function scoreClass(score){
+    if(score>=4)return'green';if(score>=2)return'yellow';if(score>=1)return'red';return'';
+}
+
 function renderHeatmap(){
     const el=document.getElementById('heatmap');
     const labels=['M','T','W','T','F','S','S'];
@@ -703,14 +859,50 @@ function renderHeatmap(){
     el.innerHTML=days.map((dk,i)=>{
         const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
         const ds=toDateStr(d);
-        const checks=dailyChecks[ds]||{};
-        const count=[checks.sleep,checks.move,checks.mind,checks.stress].filter(Boolean).length;
-        const workout=workoutLogs[wKey(dk)]?.completed;
-        const total=count+(workout?1:0);
-        const cls=total>=4?'green':total>=2?'yellow':total>=1?'red':'';
+        const score=getDayScore(ds,dk);
+        const cls=scoreClass(score);
         const isToday=ds===todayStr()?'today':'';
         return `<div class="hm ${cls} ${isToday}"><div>${labels[i]}</div></div>`
     }).join('');
+
+    renderMonthlyHeatmap();
+}
+
+function renderMonthlyHeatmap(){
+    const el=document.getElementById('monthlyHeatmap');
+    const label=document.getElementById('monthLabel');
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    label.textContent=months[viewMonth]+' '+viewYear;
+
+    const firstDay=new Date(viewYear,viewMonth,1);
+    const lastDay=new Date(viewYear,viewMonth+1,0);
+    const startDow=firstDay.getDay()||7; // Mon=1
+    const totalDays=lastDay.getDate();
+    const today=todayStr();
+    const dayKeys=['','monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+
+    let html='';
+    // Pad start
+    for(let i=1;i<startDow;i++)html+=`<div class="hm" style="opacity:.15"></div>`;
+    // Days
+    for(let d=1;d<=totalDays;d++){
+        const date=new Date(viewYear,viewMonth,d);
+        const ds=toDateStr(date);
+        const dow=date.getDay()||7;
+        const dk=dayKeys[dow];
+        const score=getDayScore(ds,dk);
+        const cls=scoreClass(score);
+        const isToday=ds===today?'today':'';
+        html+=`<div class="hm ${cls} ${isToday}" style="font-size:9px">${d}</div>`;
+    }
+    el.innerHTML=html;
+}
+
+function changeMonth(delta){
+    viewMonth+=delta;
+    if(viewMonth>11){viewMonth=0;viewYear++}
+    if(viewMonth<0){viewMonth=11;viewYear--}
+    renderMonthlyHeatmap();
 }
 
 // ===== SUNDAY REMINDER =====
