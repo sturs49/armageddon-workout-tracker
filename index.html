@@ -502,25 +502,26 @@ function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',()=>{
+    const run=(fn,name)=>{try{fn()}catch(e){console.error('INIT ERROR in '+name+':',e)}};
     selectedDay = todayKey();
-    loadConfig();
-    loadPlan();
-    loadDailyChecks();
-    renderGoals();
-    renderPriorities();
-    renderFoodLog();
-    renderMacros();
-    renderWeightLog();
-    renderSavedMeals();
+    run(loadConfig,'loadConfig');
+    run(loadPlan,'loadPlan');
+    run(loadDailyChecks,'loadDailyChecks');
+    run(renderGoals,'renderGoals');
+    run(renderPriorities,'renderPriorities');
+    run(renderFoodLog,'renderFoodLog');
+    run(renderMacros,'renderMacros');
+    run(renderWeightLog,'renderWeightLog');
+    run(renderSavedMeals,'renderSavedMeals');
     document.getElementById('weightDate').value = todayStr();
-    renderWeightDayPicker();
-    renderHeatmap();
-    renderDayPills();
-    renderWorkout();
-    checkAlerts();
-    checkSunday();
-    updateWhoopPill();
-    updateRecBar();
+    run(renderWeightDayPicker,'renderWeightDayPicker');
+    run(renderHeatmap,'renderHeatmap');
+    run(renderDayPills,'renderDayPills');
+    run(renderWorkout,'renderWorkout');
+    run(checkAlerts,'checkAlerts');
+    run(checkSunday,'checkSunday');
+    run(updateWhoopPill,'updateWhoopPill');
+    run(updateRecBar,'updateRecBar');
 
     // WHOOP OAuth callback
     const params = new URLSearchParams(window.location.search);
