@@ -178,6 +178,16 @@
         .detail-label{color:var(--text-dim)}
         .detail-value{font-weight:800}
 
+        /* Saved meals strip */
+        #savedMeals::-webkit-scrollbar{display:none}
+        .saved-meal{padding:6px 10px;background:rgba(255,255,0,.06);border:1px solid rgba(255,255,0,.15);border-radius:16px;font-size:10px;font-weight:600;color:var(--accent);white-space:nowrap;cursor:pointer;transition:all .15s;flex-shrink:0}
+        .saved-meal:active{background:rgba(255,255,0,.15);transform:scale(.96)}
+
+        /* Weight day picker */
+        .wday{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;border:2px solid var(--border);color:#444;cursor:pointer;transition:all .2s;background:transparent}
+        .wday.active{border-color:var(--accent);color:var(--accent);background:rgba(255,255,0,.06)}
+        .wday.has-data{border-color:var(--success);color:var(--success)}
+
         /* Scroll */
         ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
         @media(max-width:640px){.cardio-row{grid-template-columns:1fr 1fr}}
@@ -229,6 +239,7 @@
     <!-- Food Log -->
     <div class="card">
         <div class="card-title">Food</div>
+        <div id="savedMeals" style="display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px;padding-bottom:2px"></div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
             <select class="input" id="foodMeal" style="width:auto;flex:none;margin:0">
                 <option value="breakfast">Breakfast</option>
@@ -258,9 +269,10 @@
     <!-- Weight -->
     <div class="card">
         <div class="card-title">Weight</div>
+        <div id="weightDayPicker" style="display:flex;gap:4px;margin-bottom:8px;justify-content:center"></div>
+        <input type="hidden" id="weightDate">
         <div style="display:flex;gap:6px">
             <input class="input" type="number" id="weightInput" placeholder="lbs" step="0.1" style="flex:1;margin:0">
-            <input class="input" type="date" id="weightDate" style="flex:1;margin:0">
             <button class="btn btn-sm" onclick="logWeight()" style="width:auto;flex:none;padding:10px 14px">Save</button>
         </div>
         <div id="weightLog" style="margin-top:8px"></div>
@@ -499,6 +511,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderFoodLog();
     renderMacros();
     renderWeightLog();
+    renderSavedMeals();
+    document.getElementById('weightDate').value = todayStr();
+    renderWeightDayPicker();
     renderHeatmap();
     renderDayPills();
     renderWorkout();
@@ -506,7 +521,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     checkSunday();
     updateWhoopPill();
     updateRecBar();
-    document.getElementById('weightDate').value = todayStr();
 
     // WHOOP OAuth callback
     const params = new URLSearchParams(window.location.search);
@@ -603,17 +617,17 @@ function renderGoals(){
     const macroAvg=Math.round(macroPcts.reduce((a,b)=>a+b,0)/4*100);
 
     const goals=[
-        {label:'Recov',value:rec,max:100,display:rec>0?rec+'%':'\u2014',tap:'showRing("recovery")',color:rec>=70?'var(--success)':rec>=50?'var(--warning)':rec>0?'var(--error)':null},
-        {label:'Macros',value:Math.min(100,macroAvg),max:100,display:macroAvg>0?macroAvg+'%':'0%',tap:'showRing("macros")'},
-        {label:'Habits',value:habitsCount,max:4,display:habitsCount+'/4',tap:'showRing("habits")'},
-        {label:'Gym',value:done?1:0,max:1,display:done?'\u2713':'\u2014',tap:'showRing("gym")'},
-        {label:'Steps',value:todaySteps,max:config.stepGoal,display:todaySteps>0?todaySteps>=1000?Math.round(todaySteps/1000)+'k':todaySteps:'0',tap:'showRing("steps")'},
+        {label:'Recov',value:rec,max:100,display:rec>0?rec+'%':'\u2014',ring:'recovery',color:rec>=70?'var(--success)':rec>=50?'var(--warning)':rec>0?'var(--error)':null},
+        {label:'Macros',value:Math.min(100,macroAvg),max:100,display:macroAvg>0?macroAvg+'%':'0%',ring:'macros'},
+        {label:'Habits',value:habitsCount,max:4,display:habitsCount+'/4',ring:'habits'},
+        {label:'Gym',value:done?1:0,max:1,display:done?'\u2713':'\u2014',ring:'gym'},
+        {label:'Steps',value:todaySteps,max:config.stepGoal,display:todaySteps>0?(todaySteps>=1000?Math.round(todaySteps/1000)+'k':todaySteps):'0',ring:'steps'},
     ];
     strip.innerHTML=goals.map(g=>{
         const pct=Math.min(100,(g.value/g.max)*100);
         const color=g.color||(pct>=80?'var(--success)':pct>=40?'var(--warning)':'var(--error)');
         const r=18,circ=2*Math.PI*r,dash=(pct/100)*circ;
-        return `<div class="goal-chip" ${g.tap?`onclick="${g.tap}"`:''}><div class="goal-ring"><svg width="44" height="44"><circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${dash} ${circ}"/></svg><span class="val" style="color:${color}">${g.display}</span></div><span class="goal-lbl">${g.label}</span></div>`
+        return `<div class="goal-chip" onclick="showRing('${g.ring}')"><div class="goal-ring"><svg width="44" height="44"><circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${dash} ${circ}"/></svg><span class="val" style="color:${color}">${g.display}</span></div><span class="goal-lbl">${g.label}</span></div>`
     }).join('');
 }
 
@@ -779,10 +793,39 @@ function confirmFood(){
     document.getElementById('foodInput').value='';
     document.getElementById('foodPreview').style.display='none';
     pendingFood=null;
-    renderFoodLog();renderMacros();renderGoals();
+    renderFoodLog();renderMacros();renderGoals();renderSavedMeals();
     toast('Food logged');
 }
 function cancelFood(){document.getElementById('foodPreview').style.display='none';pendingFood=null}
+
+// Saved meals
+function getSavedMeals(){
+    const all={};
+    Object.values(foodLogs).forEach(dayFoods=>{
+        (dayFoods||[]).forEach(f=>{
+            const key=f.food.toLowerCase().trim();
+            if(!all[key])all[key]={food:f.food,calories:f.calories,protein:f.protein,carbs:f.carbs,fat:f.fat,count:0};
+            all[key].count++;
+        });
+    });
+    return Object.values(all).sort((a,b)=>b.count-a.count).slice(0,10);
+}
+
+function renderSavedMeals(){
+    const el=document.getElementById('savedMeals');
+    const meals=getSavedMeals();
+    if(!meals.length){el.style.display='none';return}
+    el.style.display='flex';
+    el.innerHTML=meals.map(m=>`<div class="saved-meal" onclick="quickLogMeal('${m.food.replace(/'/g,"\\'")}',${m.calories},${m.protein},${m.carbs},${m.fat})">${m.food}</div>`).join('');
+}
+
+function quickLogMeal(food,cal,prot,carb,fat){
+    if(!foodLogs[todayStr()])foodLogs[todayStr()]=[];
+    foodLogs[todayStr()].push({food,calories:cal,protein:prot,carbs:carb,fat,meal:document.getElementById('foodMeal').value,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+    save('kova_food',foodLogs);
+    renderFoodLog();renderMacros();renderGoals();renderSavedMeals();
+    toast('Logged: '+food);
+}
 function removeFood(i){
     const arr=foodLogs[todayStr()]||[];arr.splice(i,1);foodLogs[todayStr()]=arr;
     save('kova_food',foodLogs);renderFoodLog();renderMacros();renderGoals();
@@ -809,6 +852,33 @@ function renderMacros(){
 }
 
 // ===== DAILY: WEIGHT =====
+function renderWeightDayPicker(){
+    const el=document.getElementById('weightDayPicker');
+    const labels=['M','T','W','T','F','S','S'];
+    const t=new Date(),cd=t.getDay(),mo=cd===0?-6:1-cd;
+    const mon=new Date(t.getFullYear(),t.getMonth(),t.getDate()+mo);
+    const selectedDate=document.getElementById('weightDate').value;
+
+    el.innerHTML=labels.map((lbl,i)=>{
+        const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
+        const ds=toDateStr(d);
+        const isActive=ds===selectedDate;
+        const hasData=weightHistory.some(w=>w.date===ds);
+        let cls='wday';
+        if(isActive)cls+=' active';
+        else if(hasData)cls+=' has-data';
+        return `<div class="${cls}" onclick="selectWeightDay('${ds}')">${lbl}</div>`;
+    }).join('');
+}
+
+function selectWeightDay(ds){
+    document.getElementById('weightDate').value=ds;
+    const existing=weightHistory.find(w=>w.date===ds);
+    if(existing)document.getElementById('weightInput').value=existing.weight;
+    else document.getElementById('weightInput').value='';
+    renderWeightDayPicker();
+}
+
 function logWeight(){
     const w=parseFloat(document.getElementById('weightInput').value);
     const d=document.getElementById('weightDate').value;
@@ -817,7 +887,7 @@ function logWeight(){
     if(idx>=0)weightHistory[idx].weight=w;else{weightHistory.push({date:d,weight:w});weightHistory.sort((a,b)=>new Date(a.date)-new Date(b.date))}
     save('kova_weight',weightHistory);
     document.getElementById('weightInput').value='';
-    renderWeightLog();renderGoals();
+    renderWeightLog();renderGoals();renderWeightDayPicker();
     toast('Weight saved: '+w+' lbs');
 }
 function renderWeightLog(){
@@ -909,13 +979,42 @@ function changeMonth(delta){
     renderMonthlyHeatmap();
 }
 
-// ===== SUNDAY REMINDER =====
+// ===== WEEKLY REMINDERS =====
 function checkSunday(){
-    if(new Date().getDay()===0){
+    const dow=new Date().getDay();
+    if(dow===0){
         document.getElementById('sundayBanner').style.display='block';
-        if(Notification&&Notification.permission==='granted'){new Notification('Kova OS','Plan your week')}
+        if(Notification&&Notification.permission==='granted'){new Notification('Kova OS',{body:'Time to plan your week'})}
         else if(Notification&&Notification.permission!=='denied'){Notification.requestPermission().then(p=>{if(p==='granted')new Notification('Kova OS',{body:'Time to plan your week'})})}
     }
+    if(dow===5) showFridayRecap();
+}
+
+function showFridayRecap(){
+    const days=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+    const t=new Date(),cd=t.getDay(),mo=cd===0?-6:1-cd;
+    const mon=new Date(t.getFullYear(),t.getMonth(),t.getDate()+mo);
+    let logged=0,total=0,recSum=0,recCount=0;
+    for(let i=0;i<5;i++){
+        const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
+        const ds=toDateStr(d);
+        const dk=days[i];
+        const checks=dailyChecks[ds]||{};
+        const count=[checks.sleep,checks.move,checks.mind,checks.stress].filter(Boolean).length;
+        const workout=workoutLogs[wKey(dk)]?.completed;
+        if(count>=2||workout)logged++;
+        total++;
+    }
+    const b=document.getElementById('alertBanner');
+    let msg=`Friday recap: You logged ${logged}/${total} days this week.`;
+    if(logged>=4)msg+=` Strong week.`;
+    else if(logged>=2)msg+=` Solid but room to grow.`;
+    else msg+=` Low activity \u2014 set smaller goals next week.`;
+    b.textContent=msg;
+    b.className='alert show '+(logged>=4?'warn':'err');
+    b.style.background=logged>=4?'rgba(74,222,128,.08)':'';
+    b.style.borderColor=logged>=4?'rgba(74,222,128,.2)':'';
+    b.style.color=logged>=4?'#86efac':'';
 }
 
 // ===== WORKOUT: DAY PILLS =====
