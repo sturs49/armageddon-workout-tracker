@@ -812,20 +812,28 @@ function getSavedMeals(){
     return Object.values(all).sort((a,b)=>b.count-a.count).slice(0,10);
 }
 
+let _savedMealCache=[];
+
 function renderSavedMeals(){
     const el=document.getElementById('savedMeals');
     const meals=getSavedMeals();
+    _savedMealCache=meals;
     if(!meals.length){el.style.display='none';return}
     el.style.display='flex';
-    el.innerHTML=meals.map(m=>`<div class="saved-meal" onclick="quickLogMeal('${m.food.replace(/'/g,"\\'")}',${m.calories},${m.protein},${m.carbs},${m.fat})">${m.food}</div>`).join('');
+    el.innerHTML=meals.map((m,i)=>{
+        const safe=m.food.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+        return '<div class="saved-meal" onclick="quickLogSaved('+i+')">'+safe+'</div>';
+    }).join('');
 }
 
-function quickLogMeal(food,cal,prot,carb,fat){
+function quickLogSaved(i){
+    const m=_savedMealCache[i];
+    if(!m)return;
     if(!foodLogs[todayStr()])foodLogs[todayStr()]=[];
-    foodLogs[todayStr()].push({food,calories:cal,protein:prot,carbs:carb,fat,meal:document.getElementById('foodMeal').value,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+    foodLogs[todayStr()].push({food:m.food,calories:m.calories,protein:m.protein,carbs:m.carbs,fat:m.fat,meal:document.getElementById('foodMeal').value,time:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
     save('kova_food',foodLogs);
     renderFoodLog();renderMacros();renderGoals();renderSavedMeals();
-    toast('Logged: '+food);
+    toast('Logged: '+m.food);
 }
 function removeFood(i){
     const arr=foodLogs[todayStr()]||[];arr.splice(i,1);foodLogs[todayStr()]=arr;
