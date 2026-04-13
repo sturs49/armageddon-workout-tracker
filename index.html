@@ -23,7 +23,7 @@
         input,select,textarea{font-family:inherit}
 
         /* === HEADER === */
-        .header{background:var(--primary);padding:14px 16px;padding-top:calc(env(safe-area-inset-top,0px)+14px);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border)}
+        .header{background:var(--primary);padding:14px 16px;padding-top:calc(env(safe-area-inset-top,0px)+24px);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border)}
         .recovery-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--border);transition:background .5s}
         .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
         .logo{font-size:22px;font-weight:900;letter-spacing:-1px}
@@ -178,6 +178,13 @@
         .detail-label{color:var(--text-dim)}
         .detail-value{font-weight:800}
 
+        /* Collapsible */
+        .collapse-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;-webkit-user-select:none;user-select:none}
+        .collapse-header .arrow{color:#444;font-size:12px;transition:transform .2s}
+        .collapse-header .arrow.open{transform:rotate(180deg)}
+        .collapse-body{overflow:hidden;max-height:0;transition:max-height .3s ease}
+        .collapse-body.open{max-height:2000px}
+
         /* Saved meals */
 
         /* Weight day picker */
@@ -220,104 +227,114 @@
 
     <!-- Today's Priorities -->
     <div class="card">
-        <div class="card-title">Today's Focus</div>
-        <div id="todayPriorities"></div>
+        <div class="collapse-header" onclick="toggle(this)"><div class="card-title" style="margin:0">Today's Focus</div><span class="arrow open">&#9662;</span></div>
+        <div class="collapse-body open"><div style="padding-top:10px" id="todayPriorities"></div></div>
     </div>
 
     <!-- Non-Negotiables -->
     <div class="card">
-        <div class="card-title">Non-Negotiables</div>
-        <div class="check"><input type="checkbox" id="c-sleep" onchange="saveDaily()"><label for="c-sleep">Sleep (10:30p - 6a)</label></div>
-        <div class="check"><input type="checkbox" id="c-move" onchange="saveDaily()"><label for="c-move">Movement (60 min)</label></div>
-        <div class="check"><input type="checkbox" id="c-mind" onchange="saveDaily()"><label for="c-mind">Mindful (5-10 min)</label></div>
-        <div class="check"><input type="checkbox" id="c-stress" onchange="saveDaily()"><label for="c-stress">Stress management</label></div>
+        <div class="collapse-header" onclick="toggle(this)"><div class="card-title" style="margin:0">Non-Negotiables</div><span class="arrow open">&#9662;</span></div>
+        <div class="collapse-body open" style="padding-top:6px">
+            <div class="check"><input type="checkbox" id="c-sleep" onchange="saveDaily()"><label for="c-sleep">Sleep (10:30p - 6a)</label></div>
+            <div class="check"><input type="checkbox" id="c-move" onchange="saveDaily()"><label for="c-move">Movement (60 min)</label></div>
+            <div class="check"><input type="checkbox" id="c-mind" onchange="saveDaily()"><label for="c-mind">Mindful (5-10 min)</label></div>
+            <div class="check"><input type="checkbox" id="c-stress" onchange="saveDaily()"><label for="c-stress">Stress management</label></div>
+        </div>
     </div>
 
     <!-- Food Log -->
     <div class="card">
-        <div class="card-title">Food</div>
-        <select class="input" id="savedMeals" onchange="onSavedMealSelect()" style="display:none;margin-bottom:6px"><option value="">Quick log a recent meal...</option></select>
-        <div style="display:flex;gap:6px;margin-bottom:8px">
-            <select class="input" id="foodMeal" style="width:auto;flex:none;margin:0">
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinner">Dinner</option>
-                <option value="snack">Snack</option>
-            </select>
-        </div>
-        <div style="display:flex;gap:6px">
-            <input class="input" type="text" id="foodInput" placeholder="e.g. 2 eggs, toast, bacon" style="flex:1;margin:0">
-            <button class="btn btn-sm" onclick="logFood()" style="width:auto;flex:none;padding:10px 14px" id="foodBtn">Log</button>
-        </div>
-        <div id="foodLoading" style="display:none;text-align:center;padding:10px;color:#555;font-size:12px">Analyzing...</div>
-        <div id="foodPreview" style="display:none;background:rgba(255,255,0,.03);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px">
-            <div style="font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI Estimate</div>
-            <div id="foodPreviewItems"></div>
-            <div id="foodPreviewTotal" style="display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-weight:700;font-size:11px"></div>
-            <div style="display:flex;gap:6px;margin-top:10px">
-                <button class="btn btn-sm" onclick="confirmFood()" style="flex:1">Confirm</button>
-                <button class="btn btn-sm btn-ghost" onclick="cancelFood()" style="flex:1">Cancel</button>
+        <div class="collapse-header" onclick="toggle(this)"><div class="card-title" style="margin:0">Food</div><span class="arrow open">&#9662;</span></div>
+        <div class="collapse-body open" style="padding-top:8px">
+            <select class="input" id="savedMeals" onchange="onSavedMealSelect()" style="display:none;margin-bottom:6px"><option value="">Quick log a recent meal...</option></select>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+                <select class="input" id="foodMeal" style="width:auto;flex:none;margin:0">
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                </select>
             </div>
+            <div style="display:flex;gap:6px">
+                <input class="input" type="text" id="foodInput" placeholder="e.g. 2 eggs, toast, bacon" style="flex:1;margin:0">
+                <button class="btn btn-sm" onclick="logFood()" style="width:auto;flex:none;padding:10px 14px" id="foodBtn">Log</button>
+            </div>
+            <div id="foodLoading" style="display:none;text-align:center;padding:10px;color:#555;font-size:12px">Analyzing...</div>
+            <div id="foodPreview" style="display:none;background:rgba(255,255,0,.03);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px">
+                <div style="font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI Estimate</div>
+                <div id="foodPreviewItems"></div>
+                <div id="foodPreviewTotal" style="display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-weight:700;font-size:11px"></div>
+                <div style="display:flex;gap:6px;margin-top:10px">
+                    <button class="btn btn-sm" onclick="confirmFood()" style="flex:1">Confirm</button>
+                    <button class="btn btn-sm btn-ghost" onclick="cancelFood()" style="flex:1">Cancel</button>
+                </div>
+            </div>
+            <div id="foodLog" style="margin-top:8px"></div>
+            <div id="macroProgress" style="margin-top:8px"></div>
         </div>
-        <div id="foodLog" style="margin-top:8px"></div>
-        <div id="macroProgress" style="margin-top:8px"></div>
     </div>
 
     <!-- Weight -->
     <div class="card">
-        <div class="card-title">Weight</div>
-        <div id="weightDayPicker" style="display:flex;gap:4px;margin-bottom:8px;justify-content:center"></div>
-        <input type="hidden" id="weightDate">
-        <div style="display:flex;gap:6px">
-            <input class="input" type="number" id="weightInput" placeholder="lbs" step="0.1" style="flex:1;margin:0">
-            <button class="btn btn-sm" onclick="logWeight()" style="width:auto;flex:none;padding:10px 14px">Save</button>
+        <div class="collapse-header" onclick="toggle(this)"><div class="card-title" style="margin:0">Weight</div><span class="arrow open">&#9662;</span></div>
+        <div class="collapse-body open" style="padding-top:8px">
+            <div id="weightDayPicker" style="display:flex;gap:4px;margin-bottom:8px;justify-content:center"></div>
+            <input type="hidden" id="weightDate">
+            <div style="display:flex;gap:6px">
+                <input class="input" type="number" id="weightInput" placeholder="lbs" step="0.1" style="flex:1;margin:0">
+                <button class="btn btn-sm" onclick="logWeight()" style="width:auto;flex:none;padding:10px 14px">Save</button>
+            </div>
+            <div id="weightLog" style="margin-top:8px"></div>
         </div>
-        <div id="weightLog" style="margin-top:8px"></div>
     </div>
 
     <!-- Stress Win -->
     <div class="card">
-        <div class="card-title">Stress Win</div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
-            <button class="btn btn-sm btn-ghost" onclick="document.getElementById('stressNote').value='Walk'" style="width:auto">Walk</button>
-            <button class="btn btn-sm btn-ghost" onclick="document.getElementById('stressNote').value='Breathing'" style="width:auto">Breathing</button>
-            <button class="btn btn-sm btn-ghost" onclick="document.getElementById('stressNote').value='Workout'" style="width:auto">Workout</button>
+        <div class="collapse-header" onclick="toggle(this)"><div class="card-title" style="margin:0">Stress Win</div><span class="arrow open">&#9662;</span></div>
+        <div class="collapse-body open" style="padding-top:6px">
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+                <button class="btn btn-sm btn-ghost" onclick="document.getElementById('stressNote').value='Walk'" style="width:auto">Walk</button>
+                <button class="btn btn-sm btn-ghost" onclick="document.getElementById('stressNote').value='Breathing'" style="width:auto">Breathing</button>
+                <button class="btn btn-sm btn-ghost" onclick="document.getElementById('stressNote').value='Workout'" style="width:auto">Workout</button>
+            </div>
+            <textarea class="input" id="stressNote" placeholder="What helped today?"></textarea>
+            <button class="btn btn-sm btn-ghost" onclick="logStress()" style="margin-top:4px">Log</button>
         </div>
-        <textarea class="input" id="stressNote" placeholder="What helped today?"></textarea>
-        <button class="btn btn-sm btn-ghost" onclick="logStress()" style="margin-top:4px">Log</button>
     </div>
 
     <!-- Weekly Heatmap -->
     <div class="card">
-        <div class="card-title">This Week</div>
-        <div class="heatmap" id="heatmap"></div>
-        <div style="display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:9px;color:#555">
-            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(74,222,128,.25)"></span>4-5</span>
-            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(251,191,36,.25)"></span>2-3</span>
-            <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(239,68,68,.25)"></span>0-1</span>
+        <div class="collapse-header" onclick="toggle(this)"><div class="card-title" style="margin:0">This Week</div><span class="arrow open">&#9662;</span></div>
+        <div class="collapse-body open" style="padding-top:8px">
+            <div class="heatmap" id="heatmap"></div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:9px;color:#555">
+                <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(74,222,128,.25)"></span>4-5</span>
+                <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(251,191,36,.25)"></span>2-3</span>
+                <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(239,68,68,.25)"></span>0-1</span>
+            </div>
         </div>
     </div>
 
     <!-- Monthly Heatmap -->
     <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <div class="card-title" style="margin:0">Monthly View</div>
-            <div style="display:flex;gap:6px;align-items:center">
-                <button class="btn btn-sm btn-ghost" onclick="changeMonth(-1)" style="width:auto;padding:4px 10px;font-size:14px">&lt;</button>
+        <div class="collapse-header" onclick="toggle(this)"><div class="card-title" style="margin:0">Monthly View</div><span class="arrow">&#9662;</span></div>
+        <div class="collapse-body" style="padding-top:8px">
+            <div style="display:flex;justify-content:center;gap:6px;align-items:center;margin-bottom:8px">
+                <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();changeMonth(-1)" style="width:auto;padding:4px 10px;font-size:14px">&lt;</button>
                 <span id="monthLabel" style="font-size:11px;font-weight:700;color:var(--text-dim);min-width:80px;text-align:center"></span>
-                <button class="btn btn-sm btn-ghost" onclick="changeMonth(1)" style="width:auto;padding:4px 10px;font-size:14px">&gt;</button>
+                <button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();changeMonth(1)" style="width:auto;padding:4px 10px;font-size:14px">&gt;</button>
             </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+                <div style="text-align:center;font-size:8px;color:#333;font-weight:700">M</div>
+                <div style="text-align:center;font-size:8px;color:#333;font-weight:700">T</div>
+                <div style="text-align:center;font-size:8px;color:#333;font-weight:700">W</div>
+                <div style="text-align:center;font-size:8px;color:#333;font-weight:700">T</div>
+                <div style="text-align:center;font-size:8px;color:#333;font-weight:700">F</div>
+                <div style="text-align:center;font-size:8px;color:#333;font-weight:700">S</div>
+                <div style="text-align:center;font-size:8px;color:#333;font-weight:700">S</div>
+            </div>
+            <div class="heatmap" id="monthlyHeatmap"></div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
-            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">M</div>
-            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">T</div>
-            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">W</div>
-            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">T</div>
-            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">F</div>
-            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">S</div>
-            <div style="text-align:center;font-size:8px;color:#333;font-weight:700">S</div>
-        </div>
-        <div class="heatmap" id="monthlyHeatmap"></div>
     </div>
 </div>
 
@@ -493,6 +510,13 @@ function wKey(dk){const d=new Date();return `${dk}-${d.getFullYear()}-W${getWeek
 function getWeekNum(d){const t=new Date(d.getFullYear(),0,1);return Math.ceil(((d-t)/86400000+t.getDay()+1)/7)}
 function getDateForDay(dk){const days=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];const t=new Date();const cd=t.getDay();const mo=cd===0?-6:1-cd;const mon=new Date(t.getFullYear(),t.getMonth(),t.getDate()+mo);return new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+days.indexOf(dk))}
 function toDateStr(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+
+function toggle(header){
+    const body=header.nextElementSibling;
+    const arrow=header.querySelector('.arrow');
+    body.classList.toggle('open');
+    arrow.classList.toggle('open');
+}
 
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),1800)}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
@@ -1068,10 +1092,17 @@ function renderWorkout(){
         <div class="mode-toggle"><button class="mode-btn ${mode==='suggested'?'active':''}" onclick="setMode('suggested')">Suggested</button><button class="mode-btn ${mode==='custom'?'active':''}" onclick="setMode('custom')">Custom</button></div>`;
 
     if(mode==='suggested'){
+        const isRest=plan.type==='recovery';
         html+=exercises.map((ex,i)=>{
             const savedW=log?.exercises?.[i]?.weight||'';
             const savedR=log?.exercises?.[i]?.reps||'';
             const savedN=log?.exercises?.[i]?.notes||'';
+            if(isRest){
+                return `<div class="ex-card">
+                    <div class="ex-header"><span class="ex-name">${ex.name}</span><span class="ex-meta">${ex.reps}</span></div>
+                    <textarea class="input ex-n" data-i="${i}" placeholder="Notes" style="margin-top:4px;min-height:28px">${savedN}</textarea>
+                </div>`
+            }
             return `<div class="ex-card">
                 <div class="ex-header"><span class="ex-name">${ex.name}</span><span class="ex-meta">${ex.sets}x${ex.reps}</span></div>
                 <div class="ex-inputs">
