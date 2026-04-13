@@ -7,6 +7,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-180.png">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         :root{
@@ -388,6 +390,8 @@
         <div class="card">
             <div class="card-title">Data</div>
             <button class="btn btn-sm btn-ghost" onclick="exportData()" style="margin-bottom:6px">Export All Data</button>
+            <button class="btn btn-sm btn-ghost" onclick="document.getElementById('importFile').click()" style="margin-bottom:6px">Import Data</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
             <button class="btn btn-sm btn-danger" onclick="if(confirm('Clear ALL data?')){localStorage.clear();location.reload()}">Clear All Data</button>
         </div>
     </div>
@@ -1114,9 +1118,35 @@ function savePlan(){
 
 // ===== EXPORT =====
 function exportData(){
-    const data={config,weekPlan,dailyChecks,foodLogs,weightHistory,stressWins,workoutLogs,customExercises,dayModes,whoopData};
+    const manualSteps=JSON.parse(localStorage.getItem('kova_manualSteps')||'{}');
+    const data={config,weekPlan,dailyChecks,foodLogs,weightHistory,stressWins,workoutLogs,customExercises,dayModes,whoopData,manualSteps};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`kova-export-${todayStr()}.json`;a.click();
+}
+
+function importData(e){
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(ev){
+        try{
+            const data=JSON.parse(ev.target.result);
+            if(data.config){config=data.config;save('kova_config',config)}
+            if(data.weekPlan){weekPlan=data.weekPlan;save('kova_plan',weekPlan)}
+            if(data.dailyChecks){dailyChecks=data.dailyChecks;save('kova_checks',dailyChecks)}
+            if(data.foodLogs){foodLogs=data.foodLogs;save('kova_food',foodLogs)}
+            if(data.weightHistory){weightHistory=data.weightHistory;save('kova_weight',weightHistory)}
+            if(data.stressWins){stressWins=data.stressWins;save('kova_stress',stressWins)}
+            if(data.workoutLogs){workoutLogs=data.workoutLogs;save('kova_workouts',workoutLogs)}
+            if(data.customExercises){customExercises=data.customExercises;save('kova_customEx',customExercises)}
+            if(data.dayModes){dayModes=data.dayModes;save('kova_dayModes',dayModes)}
+            if(data.whoopData){whoopData=data.whoopData;save('kova_whoop',whoopData)}
+            if(data.manualSteps){localStorage.setItem('kova_manualSteps',JSON.stringify(data.manualSteps))}
+            toast('Data imported successfully');
+            setTimeout(()=>location.reload(),800);
+        }catch(err){toast('Import failed: invalid file')}
+    };
+    reader.readAsText(file);
+    e.target.value='';
 }
 </script>
 </body>
