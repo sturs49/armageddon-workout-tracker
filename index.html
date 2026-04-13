@@ -32,9 +32,9 @@
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
         /* Goal rings */
-        .goals-strip{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+        .goals-strip{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;justify-content:center}
         .goals-strip::-webkit-scrollbar{display:none}
-        .goal-chip{display:flex;flex-direction:column;align-items:center;min-width:56px;gap:3px}
+        .goal-chip{display:flex;flex-direction:column;align-items:center;min-width:56px;gap:3px;cursor:pointer}
         .goal-ring{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}
         .goal-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
         .goal-ring .val{font-size:11px;font-weight:800;z-index:1}
@@ -539,19 +539,33 @@ function renderGoals(){
     const steps=whoopData.steps||0;
     const done=workoutLogs[wKey(todayKey())]?.completed;
 
+    const manualSteps=JSON.parse(localStorage.getItem('kova_manualSteps')||'{}');
+    const todaySteps=manualSteps[todayStr()]||steps;
     const goals=[
-        {label:'Cal',value:cal,max:config.calGoal,display:cal},
-        {label:'Prot',value:prot,max:config.protGoal,display:prot+'g'},
-        {label:'Sleep',value:sleep,max:config.sleepGoal,display:sleep?sleep.toFixed(1)+'h':'\u2014'},
-        {label:'Steps',value:steps,max:config.stepGoal,display:steps>0?Math.round(steps/1000)+'k':'0'},
-        {label:'Gym',value:done?1:0,max:1,display:done?'\u2713':'\u2014'},
+        {label:'Cal',value:cal,max:config.calGoal,display:cal,tap:''},
+        {label:'Prot',value:prot,max:config.protGoal,display:prot+'g',tap:''},
+        {label:'Sleep',value:sleep,max:config.sleepGoal,display:sleep?sleep.toFixed(1)+'h':'\u2014',tap:''},
+        {label:'Steps',value:todaySteps,max:config.stepGoal,display:todaySteps>0?todaySteps>=1000?Math.round(todaySteps/1000)+'k':todaySteps:'0',tap:'logSteps()'},
+        {label:'Gym',value:done?1:0,max:1,display:done?'\u2713':'\u2014',tap:''},
     ];
     strip.innerHTML=goals.map(g=>{
         const pct=Math.min(100,(g.value/g.max)*100);
         const color=pct>=80?'var(--success)':pct>=40?'var(--warning)':'var(--error)';
         const r=18,circ=2*Math.PI*r,dash=(pct/100)*circ;
-        return `<div class="goal-chip"><div class="goal-ring"><svg width="44" height="44"><circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${dash} ${circ}"/></svg><span class="val" style="color:${color}">${g.display}</span></div><span class="goal-lbl">${g.label}</span></div>`
+        return `<div class="goal-chip" ${g.tap?`onclick="${g.tap}"`:''}><div class="goal-ring"><svg width="44" height="44"><circle cx="22" cy="22" r="${r}" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="22" cy="22" r="${r}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${dash} ${circ}"/></svg><span class="val" style="color:${color}">${g.display}</span></div><span class="goal-lbl">${g.label}</span></div>`
     }).join('');
+}
+
+function logSteps(){
+    const current=JSON.parse(localStorage.getItem('kova_manualSteps')||'{}');
+    const existing=current[todayStr()]||'';
+    const val=prompt('Enter today\\'s steps:',existing);
+    if(val!==null&&val!==''){
+        current[todayStr()]=parseInt(val)||0;
+        localStorage.setItem('kova_manualSteps',JSON.stringify(current));
+        renderGoals();
+        toast('Steps updated: '+current[todayStr()]);
+    }
 }
 
 // ===== DAILY: PRIORITIES =====
